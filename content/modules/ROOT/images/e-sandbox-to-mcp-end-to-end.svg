@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -10 1393 660" width="1393" height="660" font-family="'Red Hat Text','Segoe UI',Helvetica,Arial,sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect x="0" y="-10" width="1393" height="660" fill="#ffffff"/>
+<text x="40.0" y="32.8" font-size="24" fill="#1e1e1e" text-anchor="start"><tspan x="40.0" dy="0.0">OpenShell sandbox -&gt; supervisor -&gt; gateway -&gt; Keycloak -&gt; MCP Gateway (target, OpenShell &gt;= v0.0.113)</tspan></text>
+<rect x="20" y="70" width="520" height="560" rx="10" fill="none" stroke="#2f9e44" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="32.0" y="95.1" font-size="18" fill="#2f9e44" text-anchor="start"><tspan x="32.0" dy="0.0">Sandbox pod (OpenShell)</tspan></text>
+<rect x="50" y="120" width="220" height="110" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="160.0" y="162.6" font-size="18" fill="#2f9e44" text-anchor="middle"><tspan x="160.0" dy="0.0">Agent (Hermie)</tspan></text>
+<text x="160.0" y="184.3" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="160.0" dy="0.0">sees only a</tspan><tspan x="160.0" dy="16.2">placeholder</tspan></text>
+<rect x="300" y="120" width="210" height="110" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="405.0" y="151.9" font-size="16" fill="#2f9e44" text-anchor="middle"><tspan x="405.0" dy="0.0">Supervisor</tspan><tspan x="405.0" dy="20.0">+ egress proxy</tspan></text>
+<text x="405.0" y="193.1" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="405.0" dy="0.0">swaps placeholder</tspan><tspan x="405.0" dy="16.2">for real token</tspan></text>
+<rect x="300" y="300" width="210" height="80" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="405.0" y="335.5" font-size="15" fill="#1971c2" text-anchor="middle"><tspan x="405.0" dy="0.0">Workload API</tspan><tspan x="405.0" dy="18.8">socket (CSI)</tspan></text>
+<path d="M405.0 300.0 L405.0 232.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)"/>
+<text x="410.0" y="263.3" font-size="14" fill="#1971c2" text-anchor="start"><tspan x="410.0" dy="0.0">1. FetchJWTSVID</tspan></text>
+<rect x="50" y="300" width="220" height="80" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="160.0" y="335.2" font-size="16" fill="#1971c2" text-anchor="middle"><tspan x="160.0" dy="0.0">SPIRE Agent</tspan><tspan x="160.0" dy="20.0">(node)</tspan></text>
+<path d="M272.0 340.0 L298.0 340.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)" marker-start="url(#ah)"/>
+<rect x="50" y="450" width="460" height="150" rx="10" fill="#fff9db" stroke="#5c5f66" stroke-width="2"/>
+<text x="280.0" y="501.8" font-size="15" fill="#1e1e1e" text-anchor="middle"><tspan x="280.0" dy="0.0">Sandbox never holds: the JWT-SVID,</tspan><tspan x="280.0" dy="18.8">the Keycloak token, any secret.</tspan><tspan x="280.0" dy="18.8">It only sees an opaque placeholder</tspan><tspan x="280.0" dy="18.8">(same trick as --provider maas in Module 2).</tspan></text>
+<rect x="640" y="120" width="260" height="110" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="770.0" y="162.6" font-size="18" fill="#2f9e44" text-anchor="middle"><tspan x="770.0" dy="0.0">OpenShell Gateway</tspan></text>
+<text x="770.0" y="184.3" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="770.0" dy="0.0">SPIFFE broker API</tspan><tspan x="770.0" dy="16.2">has its own SVID</tspan></text>
+<path d="M512.0 175.0 L638.0 175.0" fill="none" stroke="#2f9e44" stroke-width="2" marker-end="url(#ah)"/>
+<text x="520.0" y="158.3" font-size="14" fill="#2f9e44" text-anchor="start"><tspan x="520.0" dy="0.0">2. SVID + grant request</tspan></text>
+<rect x="1020" y="120" width="300" height="130" rx="10" fill="#f3d9fa" stroke="#9c36b5" stroke-width="2"/>
+<text x="1170.0" y="165.1" font-size="20" fill="#9c36b5" text-anchor="middle"><tspan x="1170.0" dy="0.0">Keycloak (realm)</tspan></text>
+<text x="1170.0" y="187.5" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1170.0" dy="0.0">token endpoint</tspan><tspan x="1170.0" dy="16.2">RFC 8693 token exchange</tspan><tspan x="1170.0" dy="16.2">client auth = jwt-spiffe</tspan></text>
+<path d="M902.0 160.0 L1018.0 160.0" fill="none" stroke="#9c36b5" stroke-width="2" marker-end="url(#ah)"/>
+<text x="905.0" y="123.3" font-size="14" fill="#9c36b5" text-anchor="start"><tspan x="905.0" dy="0.0">3. token-exchange</tspan><tspan x="905.0" dy="17.5">client_assertion=SVID</tspan></text>
+<path d="M1018.0 210.0 L902.0 210.0" fill="none" stroke="#9c36b5" stroke-width="2" marker-end="url(#ah)"/>
+<text x="905.0" y="228.3" font-size="14" fill="#9c36b5" text-anchor="start"><tspan x="905.0" dy="0.0">4. access token</tspan><tspan x="905.0" dy="17.5">sub=user azp=sandbox SPIFFE ID</tspan></text>
+<rect x="1020" y="330" width="300" height="90" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="1170.0" y="370.1" font-size="16" fill="#1971c2" text-anchor="middle"><tspan x="1170.0" dy="0.0">SPIRE OIDC provider</tspan></text>
+<text x="1170.0" y="391.2" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1170.0" dy="0.0">JWKS</tspan></text>
+<path d="M1170.0 330.0 L1170.0 252.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)"/>
+<text x="1178.0" y="283.3" font-size="14" fill="#1971c2" text-anchor="start"><tspan x="1178.0" dy="0.0">verify SVID</tspan><tspan x="1178.0" dy="17.5">signature</tspan></text>
+<path d="M638.0 215.0 L512.0 215.0" fill="none" stroke="#2f9e44" stroke-width="2" marker-end="url(#ah)"/>
+<text x="515.0" y="235.3" font-size="14" fill="#2f9e44" text-anchor="start"><tspan x="515.0" dy="0.0">5. token (to supervisor only)</tspan></text>
+<rect x="640" y="470" width="300" height="130" rx="10" fill="#ffe8cc" stroke="#e8590c" stroke-width="2"/>
+<text x="790.0" y="507.0" font-size="20" fill="#e8590c" text-anchor="middle"><tspan x="790.0" dy="0.0">MCP Gateway</tspan></text>
+<text x="790.0" y="529.4" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="790.0" dy="0.0">Authorino AuthPolicy</tspan><tspan x="790.0" dy="16.2">1. JWT from realm</tspan><tspan x="790.0" dy="16.2">2. tool:X in roles</tspan><tspan x="790.0" dy="16.2">3. azp = agent (new CEL)</tspan></text>
+<path d="M512.0 228.0 L700.0 468.0" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#ah)"/>
+<text x="620.0" y="333.3" font-size="14" fill="#e8590c" text-anchor="start"><tspan x="620.0" dy="0.0">6. tools/call + Bearer</tspan><tspan x="620.0" dy="17.5">(injected at egress)</tspan></text>
+<rect x="1020" y="490" width="300" height="90" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="1170.0" y="540.2" font-size="16" fill="#495057" text-anchor="middle"><tspan x="1170.0" dy="0.0">MCP servers -&gt; plant-api</tspan></text>
+<path d="M942.0 535.0 L1018.0 535.0" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#ah)"/>
+<text x="945.0" y="518.3" font-size="14" fill="#e8590c" text-anchor="start"><tspan x="945.0" dy="0.0">7. allowed</tspan></text>
+<path d="M1170.0 422.0 L942.0 500.0" fill="none" stroke="#9c36b5" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#ah)"/>
+<text x="1000.0" y="453.3" font-size="14" fill="#9c36b5" text-anchor="start"><tspan x="1000.0" dy="0.0">JWKS (realm)</tspan></text>
+</svg>

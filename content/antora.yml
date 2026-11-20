@@ -1,0 +1,14 @@
+name: modules
+title: SPIFFE / SPIRE Workload Identity Guide
+version: main
+nav:
+  - modules/ROOT/nav.adoc
+
+asciidoc:
+  attributes:
+    experimental: true
+    page-pagination: true
+    source-highlighter: highlightjs
+    ztwim: "Zero Trust Workload Identity Manager"
+    ocp-short: "OpenShift"
+    repo-url: "https://github.com/rcarrata/spiffe-spire-guide"

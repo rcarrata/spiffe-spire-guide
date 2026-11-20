@@ -1,0 +1,179 @@
+= How a sandbox gets an SVID and trades it: OpenShell -> Gateway -> Keycloak
+:navtitle: 3. Sandbox → Gateway → Keycloak
+
+[NOTE]
+====
+Sources: link:{repo-url}/blob/main/sources/openshell-dynamic-token-grants.md[sources/openshell-dynamic-token-grants.md^] (docs v0.0.116, latest v0.1.9), link:{repo-url}/blob/main/sources/openshell-gateway-config.md[sources/openshell-gateway-config.md^], link:{repo-url}/blob/main/sources/openshell-pr-1970.md[sources/openshell-pr-1970.md^], link:{repo-url}/blob/main/sources/robert-design-note/05-spiffe-and-ztwim.md[sources/robert-design-note/05-spiffe-and-ztwim.md^], workshop repo (main, pulled 2026-11-20).
+
+link:{attachmentsdir}/spiffe-spire-explained.html[Interactive version of this chapter^]
+====
+
+.OpenShell sandbox to MCP Gateway, end to end
+image::e-sandbox-to-mcp-end-to-end.svg[OpenShell sandbox to MCP Gateway, end to end,link=self]
+
+*Status flag:* everything below about `token++_++grant` and the SPIFFE broker is what the *upstream OpenShell docs* describe. *Our lab runs chart 0.0.92 and CLI `openshell-cli:0.1` (`automation/gitops/tenant-openshell/values.yaml:8,61`), whose provider profiles are static-credential only.* Robert verified that live. To use any of this, OpenShell needs an upgrade.
+
+Version map (from `sources/openshell-pr-1970.md`):
+
+* `token++_++exchange`, `subject++_++token`, `--from-oidc-token`, gateway socket: *PR ++#++1970, merged 2026-08-24, first in v0.0.113*. akram tested it on ROSA 4.21 {plus} *ZTWIM v1.1.0*: works, with small ZTWIM tweaks (e.g. `ClusterSPIFFEID` `className`).
+* `++[++openshell.gateway.spiffe++_++broker++]++` (shared supervisors, SPIRE Broker API): *PR ++#++4732, merged 2026-11-18, NOT in any release yet* (latest is v0.1.9 from 2026-11-17).
+
+== The big idea: the sandbox never holds a credential
+
+Module 2 already shows this with `--provider maas` (`content/modules/ROOT/pages/module-02-sandbox-the-agent.adoc:120-127`). The agent gets an *opaque placeholder* in its env. The *supervisor's egress proxy* swaps it for the real key on the way out. Hermie authenticates to the model and never sees the key.
+
+Dynamic token grants use the same trick, but the real token is no longer a stored secret. The supervisor *mints it on demand* from the sandbox's SPIFFE identity:
+
+____
+"Dynamic token grants that use the sandbox's SPIFFE JWT-SVID as an OAuth2 client assertion and inject short-lived tokens into supported headers for matching profile endpoints."
+____
+
+== The cast
+
+[cols=",,,",options="header",]
+|===
+|Who |Where |Has a SPIFFE identity? |Role
+|*Agent* (Hermie) |inside the sandbox |no (doesn't need one) |Sends plain HTTP to e.g. the MCP Gateway. Holds nothing
+|*Supervisor* {plus} egress proxy |sandbox pod, outside the agent's reach |*yes*, its JWT-SVID from the Workload API socket |Matches traffic to a provider endpoint, fetches/caches the token, injects `Authorization: Bearer`
+|*OpenShell Gateway* |control plane StatefulSet |*yes*, its own X.509 {plus} JWT-SVID |Stores the user's subject token (never handed to the sandbox), does the intermediate exchange, or brokers sandbox SVIDs
+|*SPIRE Agent* |each node |- |Attests supervisor/gateway, hands out SVIDs
+|*Keycloak* |realm token endpoint |- |Accepts the JWT-SVID as client authentication, issues access tokens (RFC 8693 exchange)
+|*MCP Gateway* |per tenant |- |Verifies the Keycloak token and decides per tool (note 06)
+|===
+
+== Step 1: how the sandbox gets its SVID
+
+Two ways, depending on how the supervisor runs:
+
+=== a) Per-sandbox Workload API socket (simple)
+
+The Kubernetes driver mounts the SPIRE agent socket into each sandbox pod:
+
+[source,toml]
+----
+[openshell.drivers.kubernetes]
+provider_spiffe_workload_api_socket_path = "/spiffe-workload-api/spire-agent.sock"
+----
+
+The supervisor calls `FetchJWTSVID(audience=++<++keycloak realm++>++)`. The SPIRE agent attests the pod (namespace, SA, labels) and returns a JWT-SVID. With ZTWIM, a `ClusterSPIFFEID` matching sandbox pods decides the SPIFFE ID.
+
+=== b) Shared supervisors: the gateway asks SPIRE's Broker API for you (unreleased, PR ++#++4732)
+
+For shared-supervisor setups, the sandbox has no socket. The *gateway* gets the sandbox's JWT-SVID _on its behalf_ through SPIRE's *experimental Broker API*:
+
+[source,toml]
+----
+[openshell.gateway.spiffe_broker]
+spiffe_id_prefix = "spiffe://example.org/openshell"
+node_local_port = 8443
+server_spiffe_id_prefix = "spiffe://example.org/spire/agent/k8s_psat/cluster"
+workload_api_socket_path = "/spiffe-workload-api/spire-agent.sock"
+----
+
+* The gateway talks mTLS to the *SPIRE agent on its own node* (`OPENSHELL++_++NODE++_++IP` from the Downward API) using its own X.509-SVID.
+* It asks for an SVID for a `KubernetesObjectReference`, meaning the *Sandbox CR's UID*. SPIRE checks the gateway has the `impersonate-via-spire` verb on that Sandbox (SubjectAccessReview).
+* Each sandbox has a *stable SPIFFE ID registered against its Sandbox UID*. A pod restart doesn't change it.
+* Needs `gateway++_++jwt.ttl++_++secs ++>++ 0` (Helm default 3600), and the SPIRE agent with `access++_++policy = "enforced"`.
+* Limits: 4 concurrent requests per sandbox, 64 per gateway.
+
+ZTWIM 1.x would need to support this experimental SPIRE API. *Unverified*, so check before you count on it.
+
+== Step 2: how the SVID becomes a Keycloak token (`token++_++grant`)
+
+The provider profile describes it per credential:
+
+[source,yaml]
+----
+credentials:
+  - name: user_oidc_token            # gateway-only, never reaches the sandbox
+    required: true
+  - name: api_token
+    auth_style: bearer
+    header_name: authorization
+    token_grant:
+      grant_type: token_exchange     # or client_credentials (default)
+      token_endpoint: https://<kc>/realms/waterplant-user1/protocol/openid-connect/token
+      audience: mcp-gateway          # final audience
+      jwt_svid_audience: https://<kc>/realms/waterplant-user1
+      client_assertion_type: urn:ietf:params:oauth:client-assertion-type:jwt-spiffe
+      requested_token_type: urn:ietf:params:oauth:token-type:access_token
+      subject_token:
+        source: provider_credential
+        credential: user_oidc_token
+endpoints:
+  - host: mcp-gateway.user1-hermes.svc.cluster.local
+    port: 8080
+    path: /mcp/**
+----
+
+=== Grant type `client++_++credentials`: "I am this workload"
+
+....
+supervisor ──FetchJWTSVID(aud=realm)──▶ SPIRE agent
+supervisor ──POST token_endpoint
+             grant_type=client_credentials
+             client_assertion_type=...:jwt-spiffe
+             client_assertion=<JWT-SVID>──▶ Keycloak
+Keycloak   ──verifies SVID with SPIRE JWKS, maps sub (SPIFFE ID) to a client──▶ access token
+supervisor ──injects Bearer on matching requests──▶ MCP Gateway
+....
+
+The token names *the workload only*. That's fine for machine-to-machine traffic, but you lose "on behalf of which user".
+
+=== Grant type `token++_++exchange`: "this workload, acting for this user" (the interesting one)
+
+....
+0. Human logs in to the OpenShell gateway via OIDC. CLI:  openshell provider create --from-oidc-token
+   -> the user's access token is stored on the GATEWAY as `user_oidc_token` (never in the sandbox)
+
+1. Agent sends HTTP to the MCP Gateway endpoint. The supervisor's proxy intercepts it.
+2. Supervisor fetches its own JWT-SVID and asks the OpenShell GATEWAY for an intermediate token.
+3. Gateway verifies the supervisor's SVID (issuer, audience, signature, trust domain),
+   checks the provider is attached to THIS sandbox, then calls Keycloak:
+     grant_type=urn:ietf:params:oauth:grant-type:token-exchange
+     subject_token=<user_oidc_token>
+     audience=<supervisor's SPIFFE ID>          <- intermediate token is bound to this sandbox
+     client_assertion=<GATEWAY's JWT-SVID>
+4. Keycloak returns the INTERMEDIATE token (user as subject, audience = the sandbox SPIFFE ID).
+5. Supervisor exchanges again at Keycloak:
+     subject_token=<intermediate>
+     audience=mcp-gateway (final)
+     client_assertion=<SUPERVISOR's JWT-SVID>
+6. Keycloak returns the FINAL token: `sub` = the user, `azp` = `spiffe://<td>/.../sandbox/<uuid>` (per PR #1970). Supervisor caches it (expires_in - 30s, max 1h) and injects
+   Authorization: Bearer <final> on the request.
+7. MCP Gateway verifies the realm token, checks tool roles (note 06).
+....
+
+What each party proves:
+
+* *User* → their real OIDC login (subject token).
+* *Gateway* → it's the real OpenShell gateway (its SVID), so only it can turn a user token into an intermediate.
+* *Sandbox* → it's the sandbox the intermediate was minted for (audience = its SPIFFE ID, and it signs with its own SVID).
+* *Agent* → nothing. It can't steal any of it.
+
+That's _exactly_ the shape Robert's design wants (`sub = operator`, `azp = ++<++agent++>++`), done natively by OpenShell instead of a hand-written broker sidecar. One difference: `azp` is the *sandbox's SPIFFE ID*, not a friendly `hermes-agent` client name, so the Authorino CEL check would match a SPIFFE prefix (note 06).
+
+In the Helm chart (++>++= v0.0.113), `server.providerTokenGrants.spiffe.enabled` {plus} `workloadApiSocketPath` mount the `csi.spiffe.io` socket into *both* gateway and sandbox pods (env `OPENSHELL++_++GATEWAY++_++SPIFFE++_++WORKLOAD++_++API++_++SOCKET` / `OPENSHELL++_++PROVIDER++_++SPIFFE++_++WORKLOAD++_++API++_++SOCKET`). On chart 0.0.92 the same key renders a single config line and mounts nothing (Robert). Newer main moves the sandbox socket to `gatewayConfig.openshell.drivers.kubernetes.provider++_++spiffe++_++workload++_++api++_++socket++_++path`.
+
+A security review on PR ++#++1970 (GATOR-e577e093-01) caught the raw user OIDC token leaking into the sandbox. It was fixed before merge, and the subject token is now gateway-only.
+
+== What Keycloak needs for this to work
+
+[arabic]
+. A way to accept a *JWT-SVID as client authentication* with `client++_++assertion++_++type=...:jwt-spiffe` (IETF `draft-ietf-oauth-spiffe-client-auth`). Keycloak has it: a `spiffe` identity provider {plus} the `federated-jwt` client authenticator. *Preview since 26.4* (`--feature-spiffe=enabled`), still preview in 26.8.2. Details in note 05.
+. A client per SPIFFE identity (gateway, each sandbox or a prefix), trusting the SPIRE issuer/JWKS.
+. *Standard Token Exchange V2* enabled, and the exchange permitted for those clients (Robert: advertised on our realm, RHBK 26.4.18). Remember the audience rule: the requesting client must be the subject token's `azp` or be in its `aud`.
+
+[[today-in-our-repo--with-openshell-token-grants]]
+== Today in our repo → with OpenShell token grants
+
+[cols=",,",options="header",]
+|===
+| |Today (main) |With SPIFFE token grants
+|Token source |`mcp-token-refresh.py` inside the sandbox: `grant++_++type=password` as realm user `operator` (`tenant-platform/files/mcp-token-refresh.py:55-63`) |supervisor `token++_++grant`, no password
+|Credentials |`MCP++_++USERNAME` / `MCP++_++PASSWORD` env on the bridge (`tenant-openshell/templates/bridge.yaml:487-489`) |none. User token stays on the gateway, SVIDs are attested
+|Where the token lives |`$HERMES++_++HOME/mcp-tokens/gateway.json`, readable by the agent |supervisor cache, injected at egress. *Agent never sees it*
+|Client |shared public `mcp-gateway` |gateway/sandbox SPIFFE clients, exchange → `sub=user`, `azp=agent`
+|OpenShell |chart 0.0.92, CLI 0.1, static profiles only |++>++= v0.0.113 (v0.1.9 is latest), `providers++_++v2++_++enabled=true`, socket mount (broker config after the next release)
+|Agent path |sandboxed Hermie |*Path B*. Robert proposes proving *Path A* (`hermes-plain` {plus} csi.spiffe.io broker sidecar) first
+|===

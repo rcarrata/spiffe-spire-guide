@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 -10 1480 980" width="1480" height="980" font-family="'Red Hat Text','Segoe UI',Helvetica,Arial,sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect x="20" y="-10" width="1480" height="980" fill="#ffffff"/>
+<text x="40.0" y="34.7" font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="40.0" dy="0.0">Attestation: the workload sends NOTHING to prove itself</tspan></text>
+<rect x="80" y="60" width="200" height="70" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="180.0" y="89.6" font-size="18" fill="#2f9e44" text-anchor="middle"><tspan x="180.0" dy="0.0">Workload</tspan><tspan x="180.0" dy="22.5">(pod)</tspan></text>
+<path d="M180.0 130.0 L180.0 950.0" fill="none" stroke="#adb5bd" stroke-width="1" stroke-dasharray="8 6"/>
+<rect x="380" y="60" width="200" height="70" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="480.0" y="89.6" font-size="18" fill="#1971c2" text-anchor="middle"><tspan x="480.0" dy="0.0">SPIRE Agent</tspan><tspan x="480.0" dy="22.5">(node)</tspan></text>
+<path d="M480.0 130.0 L480.0 950.0" fill="none" stroke="#adb5bd" stroke-width="1" stroke-dasharray="8 6"/>
+<rect x="680" y="60" width="200" height="70" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="780.0" y="89.6" font-size="18" fill="#495057" text-anchor="middle"><tspan x="780.0" dy="0.0">kubelet /</tspan><tspan x="780.0" dy="22.5">kernel</tspan></text>
+<path d="M780.0 130.0 L780.0 950.0" fill="none" stroke="#adb5bd" stroke-width="1" stroke-dasharray="8 6"/>
+<rect x="980" y="60" width="200" height="70" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="1080.0" y="100.8" font-size="18" fill="#1971c2" text-anchor="middle"><tspan x="1080.0" dy="0.0">SPIRE Server</tspan></text>
+<path d="M1080.0 130.0 L1080.0 950.0" fill="none" stroke="#adb5bd" stroke-width="1" stroke-dasharray="8 6"/>
+<rect x="1280" y="60" width="200" height="70" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="1380.0" y="89.6" font-size="18" fill="#495057" text-anchor="middle"><tspan x="1380.0" dy="0.0">K8s API</tspan><tspan x="1380.0" dy="22.5">TokenReview</tspan></text>
+<path d="M1380.0 130.0 L1380.0 950.0" fill="none" stroke="#adb5bd" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="60.0" y="165.2" font-size="16" fill="#1971c2" text-anchor="start"><tspan x="60.0" dy="0.0">NODE ATTESTATION (once per node)</tspan></text>
+<text x="60.0" y="415.2" font-size="16" fill="#2f9e44" text-anchor="start"><tspan x="60.0" dy="0.0">WORKLOAD ATTESTATION (every request)</tspan></text>
+<path d="M480.0 190.0 L1080.0 190.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)"/>
+<text x="490.0" y="181.3" font-size="14" fill="#1e1e1e" text-anchor="start"><tspan x="490.0" dy="0.0">1. here is my projected SA token (PSAT)</tspan></text>
+<path d="M1080.0 240.0 L1380.0 240.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)"/>
+<text x="1090.0" y="231.3" font-size="14" fill="#1e1e1e" text-anchor="start"><tspan x="1090.0" dy="0.0">2. is this token real?</tspan></text>
+<path d="M1380.0 290.0 L1080.0 290.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)"/>
+<text x="1090.0" y="281.3" font-size="14" fill="#1e1e1e" text-anchor="start"><tspan x="1090.0" dy="0.0">3. yes: node X, sa spire-agent</tspan></text>
+<path d="M1080.0 340.0 L480.0 340.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)"/>
+<text x="490.0" y="331.3" font-size="14" fill="#1e1e1e" text-anchor="start"><tspan x="490.0" dy="0.0">4. agent SVID + trust bundle + my entries</tspan></text>
+<path d="M180.0 440.0 L480.0 440.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)"/>
+<text x="190.0" y="431.3" font-size="14" fill="#1e1e1e" text-anchor="start"><tspan x="190.0" dy="0.0">5. FetchJWTSVID(aud=keycloak) on the socket</tspan></text>
+<path d="M480.0 500.0 L780.0 500.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)"/>
+<text x="490.0" y="491.3" font-size="14" fill="#1e1e1e" text-anchor="start"><tspan x="490.0" dy="0.0">6. who is PID 4242? (SO_PEERCRED)</tspan></text>
+<path d="M780.0 560.0 L480.0 560.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)"/>
+<text x="490.0" y="551.3" font-size="14" fill="#1e1e1e" text-anchor="start"><tspan x="490.0" dy="0.0">7. pod hermes-plain, ns user1-hermes,</tspan><tspan x="490.0" dy="17.5">    sa hermes-agent, image ...</tspan></text>
+<path d="M480.0 720.0 L180.0 720.0" fill="none" stroke="#1e1e1e" stroke-width="2" marker-end="url(#ah)"/>
+<text x="190.0" y="711.3" font-size="14" fill="#1e1e1e" text-anchor="start"><tspan x="190.0" dy="0.0">9. JWT-SVID sub=spiffe://.../ns/user1-hermes/sa/hermes-agent</tspan></text>
+<rect x="390" y="610" width="380" height="70" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="580.0" y="640.8" font-size="14" fill="#1971c2" text-anchor="middle"><tspan x="580.0" dy="0.0">8. match selectors against</tspan><tspan x="580.0" dy="17.5">registration entries (ClusterSPIFFEID)</tspan></text>
+<rect x="60" y="800" width="600" height="110" rx="10" fill="#fff9db" stroke="#5c5f66" stroke-width="2"/>
+<text x="360.0" y="840.2" font-size="16" fill="#1e1e1e" text-anchor="middle"><tspan x="360.0" dy="0.0">Why you can&#x27;t fake it: the agent asks the KERNEL</tspan><tspan x="360.0" dy="20.0">who is on the socket and the KUBELET what that pod is.</tspan><tspan x="360.0" dy="20.0">Nothing the container says is trusted.</tspan></text>
+</svg>

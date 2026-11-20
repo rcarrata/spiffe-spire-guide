@@ -1,0 +1,133 @@
+= Keycloak, OpenShell and SPIRE: who talks to whom
+:navtitle: 5. Keycloak + OpenShell + SPIRE
+
+[NOTE]
+====
+Sources: link:{repo-url}/blob/main/sources/keycloak-issue-41907.md[sources/keycloak-issue-41907.md^] ({plus} epic ++#++42634, ++#++46977), link:{repo-url}/blob/main/sources/skycloak-jwt-svid-keycloak.md[sources/skycloak-jwt-svid-keycloak.md^], link:{repo-url}/blob/main/sources/posta-mcp-oauth-spiffe.md[sources/posta-mcp-oauth-spiffe.md^], link:{repo-url}/blob/main/sources/openshell-pr-1970.md[sources/openshell-pr-1970.md^], link:{repo-url}/blob/main/sources/robert-design-note/04-keycloak-upgrade-path.md[sources/robert-design-note/04-keycloak-upgrade-path.md^], `05-spiffe-and-ztwim.md`.
+
+link:{attachmentsdir}/spiffe-spire-explained.html[Interactive version of this chapter^]
+====
+
+.Trust map
+image::f-trust-map.svg[Trust map,link=self]
+
+== The trust map in one table
+
+[cols=",,,",options="header",]
+|===
+|Verifier |Verifies |Using |Configured where
+|SPIRE Server |SPIRE Agent (node) |Kubernetes TokenReview on the agent's PSAT |`SpireAgent.nodeAttestor.k8sPSATEnabled`
+|SPIRE Agent |Workload (pod) |kernel peer PID {plus} kubelet pod info → selectors |`SpireAgent.workloadAttestors.k8sEnabled` {plus} `ClusterSPIFFEID`
+|OpenShell Gateway |Supervisor's JWT-SVID |its own trust bundle (same trust domain) |gateway Workload API socket
+|SPIRE Agent (Broker API) |Gateway asking for a sandbox SVID |mTLS with the gateway X.509-SVID {plus} SubjectAccessReview `impersonate-via-spire` |PR ++#++4732, unreleased
+|*Keycloak* |*JWT-SVID as client auth* |*SPIRE JWKS* (bundle endpoint or OIDC JWKS URL) |`spiffe` identity provider {plus} client with `federated-jwt`
+|MCP Gateway (Authorino) |Keycloak access token |realm JWKS (`issuerUrl`) |`tenant-policy/templates/mcp-gateway-policy.yaml:63,95`
+|===
+
+*Two roots of trust, bridged by Keycloak:*
+
+* SPIRE signs _workload_ identity ("this is sandbox X").
+* Keycloak signs _user identity {plus} permissions_ ("operator, with tool:Y").
+* Keycloak accepts a SPIRE-signed SVID as the client's proof and mints its own token that names both. Authorino only ever needs to trust Keycloak.
+
+== Keycloak's SPIFFE support: the real status
+
+Issue *++#++41907* ("Support authenticating clients with SPIFFE/SPIRE", by stianst) was closed as a duplicate of epic *++#++42634 "Federated client authentication"*. What shipped:
+
+[cols=",",options="header",]
+|===
+|Version |What
+|26.4.0 |`spiffe` identity provider {plus} `federated-jwt` client authenticator, both *preview*
+|26.5 |single-feature flag `--feature-spiffe=enabled`. IdP key `issuer` renamed to `trustDomain`. Client id *no longer has to equal* the SVID `sub` ("Federated subject" field instead)
+|26.6.0 |federated client auth (OIDC IdPs, *Kubernetes service accounts*) → *supported*. *SPIFFE stays preview* (IETF draft not final)
+|26.8.2 (latest) |SPIFFE still preview. ++#++46977 "Supported SPIFFE client authentication" open for 27.0. X509-SVID client auth (++#++49833) open
+|===
+
+[[how-you-configure-it-265-shape]]
+=== How you configure it (26.5{plus} shape)
+
+[arabic]
+. Start Keycloak with `--features=spiffe` (or `--feature-spiffe=enabled`).
+. *Identity provider*, type `spiffe`:
+* `trustDomain`: `spiffe://apps.cluster-xyz.example.com`
+* `bundleEndpoint`: the SPIFFE bundle endpoint *or* the OIDC JWKS URL, e.g. `https://oidc-discovery.apps.cluster-xyz.example.com/keys` (served by ZTWIM's `SpireOIDCDiscoveryProvider`)
+. *Client* (confidential), Credentials tab → Client Authenticator = *"Signed JWT - Federated"* (`federated-jwt`):
+* `jwt.credential.issuer` = the IdP alias above
+* `jwt.credential.sub` = `spiffe://apps.cluster-xyz.example.com/ns/user1-hermes/sa/hermes-agent`
+. The workload asks SPIRE for a JWT-SVID with *`aud` = the realm issuer URL* (`https://++<++kc++>++/realms/waterplant-user1`). For SPIFFE the audience can't be customised.
+. Token request:
+
+[source,http]
+----
+POST /realms/waterplant-user1/protocol/openid-connect/token
+grant_type=client_credentials            # or urn:ietf:params:oauth:grant-type:token-exchange
+client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-spiffe
+client_assertion=<JWT-SVID>
+----
+
+=== Validation rules Keycloak applies (from ++#++42634)
+
+* Signature with the IdP's keys (SPIRE bundle / JWKS).
+* `iss` must match the IdP. Exception: if `sub` is a `spiffe://` URI and `iss` is *missing*, scheme {plus} authority of `sub` is used.
+* `aud` single value = realm issuer URL.
+* `exp` required. `jti` required unless the IdP allows re-use (SPIFFE does, because JWT-SVIDs are cached and re-used).
+* One unique SPIFFE ID per client per realm.
+
+____
+*Check this when testing:* ZTWIM sets `iss` = `SpireServer.jwtIssuer` (`https://oidc-discovery...`), while the 26.5{plus} IdP is keyed by `trustDomain`. Whether an `iss` that is present but URL-shaped passes the "iss must match" rule on RHBK 26.4 (old `issuer` key, so you'd set it to the OIDC URL) vs 26.6{plus} (`trustDomain`) is *the first thing to verify*.
+____
+
+[[what-this-means-for-our-keycloak-rhbk-26418]]
+== What this means for _our_ Keycloak (RHBK 26.4.18)
+
+* 26.4 *has* the preview code. But it needs the `spiffe` *and* `client-auth-federated` preview features enabled at server start (single-feature flag only from 26.5).
+* Since 26.4 is before 26.5, the client id likely *must equal* the SPIFFE ID. That's exactly Robert's "set `clientId` to the SPIFFE ID string" trick, and now we know why it's needed.
+* *Blocker:* the Keycloak is RHDP-provisioned and shared by every realm on the cluster (Robert). Turning on a preview feature is a server restart nobody in the lab owns. Options:
+[arabic]
+. Ask RHDP for the flag (or for an RHBK 26.6{plus} / 26.8 stream when it exists).
+. Run a small lab-owned Keycloak for the spike.
+. Use the non-Keycloak fallbacks (note 06): Authorino validating the JWT-SVID directly.
+
+== The alternatives people used before native support
+
+[cols=",,,",options="header",]
+|===
+|Approach |How |Pros |Cons
+|*`private++_++key++_++jwt` {plus} JWKS URL* (Robert option 2, skycloak) |Client Authenticator "Signed JWT", `use.jwks.url=true`, `jwks.url` → SPIRE OIDC `/keys`, `client++_++assertion++_++type=...:jwt-bearer` |Works on any Keycloak |RFC 7523 wants `iss == sub == client++_++id`. SVID has `iss` = OIDC URL. Keycloak also tracks `jti` (SVIDs have none)
+|*Posta's custom SPI* |`SpiffeSvidClientAuthenticator`, id `client-spiffe-jwt`, assertion type `...:spiffe-svid-jwt` (pre-standard), Keycloak 26.2.5, SPIRE `oidc-discovery-provider:1.12.4`, `default++_++jwt++_++svid++_++ttl = "1m"` |Clean, `azp` = SPIFFE ID in the issued token |Custom jar in Keycloak. Superseded by native `federated-jwt`
+|*mTLS `tls++_++client++_++auth`* with X.509-SVID (Robert option 1, skycloak) |"X509 Certificate" authenticator, RFC 8705. SVID rules: exactly 1 URI SAN, CA=FALSE |Proof-of-possession, SPIRE's primary credential |TLS must reach Keycloak end to end. The RHDP route/ingress isn't ours. Native X509-SVID support (++#++49833) is still open
+|===
+
+== How OpenShell plugs in (recap from note 03)
+
+....
+                        ┌──────────── SPIRE (ZTWIM) ────────────┐
+                        │ Server ── Agent/CSI ── OIDC JWKS      │
+                        └───┬───────────┬──────────────┬────────┘
+              sandbox SVID  │  gateway  │ SVID         │ JWKS
+                            ▼           ▼              ▼
+  Agent ─▶ Supervisor ─(1)▶ OpenShell Gateway ─(2)▶ Keycloak (spiffe IdP, federated-jwt clients)
+             │   ▲                       ◀─(3)── intermediate token (aud = sandbox SPIFFE ID)
+             │   └────────────(4) exchange with sandbox SVID ──────▶ Keycloak
+             │                           ◀─(5)── final token: sub=user, azp=spiffe://.../sandbox/<uuid>
+             └─(6) Bearer injected at egress ─▶ MCP Gateway ─▶ MCP servers
+....
+
+Keycloak clients you'd need:
+
+* one for the *OpenShell gateway* SPIFFE ID (allowed to exchange user tokens, audience = sandbox IDs),
+* one per *sandbox* SPIFFE ID, or a pattern (unclear: Keycloak wants one unique SPIFFE ID per client, and sandbox IDs are per UUID). *Open question* for dynamic sandboxes,
+* token-exchange permissions between them (Standard Token Exchange V2, advertised on our realm).
+
+[[today-in-our-repo--target]]
+== Today in our repo → target
+
+[cols=",,",options="header",]
+|===
+| |Today |Target
+|Keycloak client used by the agent |public `mcp-gateway` (`.Values.keycloak.agentClientId`) |`federated-jwt` client per SPIFFE ID
+|Agent credential |realm user `operator` {plus} password in env |none. JWT-SVID from the Workload API
+|Token claims |`azp=mcp-gateway`, no `sub`, no `aud` |`sub=operator` (user), `azp=++<++agent or sandbox SPIFFE ID++>++`, `aud=mcp-gateway`
+|Prerequisite |- |subject {plus} audience mappers (Robert phase 1), so the exchange is allowed at all
+|Keycloak features |RHBK 26.4.18, SPIFFE off, shared RHDP instance |`spiffe` {plus} `client-auth-federated` enabled, or a lab-owned Keycloak
+|===

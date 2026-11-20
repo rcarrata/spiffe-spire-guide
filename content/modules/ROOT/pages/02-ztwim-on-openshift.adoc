@@ -1,0 +1,178 @@
+= Zero Trust Workload Identity Manager (ZTWIM) on OpenShift
+:navtitle: 2. ZTWIM on OpenShift
+
+[NOTE]
+====
+Sources: link:{repo-url}/blob/main/sources/ocp419-ztwim-chapter10.md[sources/ocp419-ztwim-chapter10.md^] (10.1-10.8), link:{repo-url}/blob/main/sources/ztwim-product-page.md[sources/ztwim-product-page.md^], link:{repo-url}/blob/main/sources/robert-design-note/05-spiffe-and-ztwim.md[sources/robert-design-note/05-spiffe-and-ztwim.md^].
+
+link:{attachmentsdir}/spiffe-spire-explained.html[Interactive version of this chapter^]
+====
+
+.ZTWIM resources and what they run
+image::c-ztwim-crds.svg[ZTWIM resources and what they run,link=self]
+
+== What it is
+
+A Red Hat supported *operator that runs SPIRE for you* on OpenShift. You don't install SPIRE with Helm, you create a handful of CRs (all named `cluster`), and the operator deploys and reconciles everything in the `zero-trust-workload-identity-manager` namespace.
+
+* Package: `openshift-zero-trust-workload-identity-manager`, channel `stable-v1`
+* In our lab cluster catalog: *v1.1.3, available, NOT installed* (Robert, verified 2026-11-19)
+* The 4.19 docs cover releases 0.1.0 → 1.0.4
+
+== The CRDs and what each one does
+
+Create them *in this order* (docs 10.5):
+
+[cols=",,,",options="header",]
+|===
+|++#++ |CR (`name: cluster`) |Deploys |What it's for
+|1 |`ZeroTrustWorkloadIdentityManager` |nothing by itself |Sets `trustDomain` (immutable, use the apps domain), `clusterName`, `bundleConfigMap` (default `spire-bundle`)
+|2 |`SpireServer` |StatefulSet `spire-server` (2 containers: server {plus} *SPIRE Controller Manager*) {plus} PVC |The CA, signs SVIDs, stores registration entries. Sets `jwtIssuer`, `caValidity: 24h`, `defaultX509Validity: 1h`, `defaultJWTValidity: 5m`, `jwtKeyType`
+|3 |`SpireAgent` |DaemonSet `spire-agent` |One per node. `nodeAttestor.k8sPSATEnabled`, `workloadAttestors.k8sEnabled`, socket dir `/run/spire/agent-sockets`
+|4 |`SpiffeCSIDriver` |DaemonSet `spire-spiffe-csi-driver` |Mounts the agent socket into pods via an inline `csi.spiffe.io` volume. `agentSocketPath` must equal the agent's `socketPath`
+|5 |`SpireOIDCDiscoveryProvider` |Deployment `spire-spiffe-oidc-discovery-provider` {plus} Route |Publishes `/.well-known/openid-configuration` and the *JWKS* so non-SPIFFE systems (Keycloak, Vault, Azure Entra, Authorino) can verify JWT-SVIDs. `jwtIssuer` must equal the server's
+|- |`ClusterSPIFFEID` |registration entries |"Which pods get which SPIFFE ID". Read by the Controller Manager. Robert calls it the *Agent Registry*
+|- |`ClusterFederatedTrustDomain` |bundle sync |Trust another trust domain (other cluster, other SPIRE)
+|===
+
+=== The SPIRE Controller Manager (the hidden hero)
+
+It runs *inside the spire-server pod* and talks to the server over a private Unix socket. It watches pods and `ClusterSPIFFEID` CRs and creates/updates/deletes SPIRE registration entries. So you never run `spire-server entry create` by hand: you write YAML.
+
+== Minimal setup (from the docs)
+
+[source,yaml]
+----
+apiVersion: operator.openshift.io/v1alpha1
+kind: ZeroTrustWorkloadIdentityManager
+metadata: { name: cluster }
+spec:
+  trustDomain: "apps.cluster.example.com"
+  clusterName: "production-cluster"
+---
+apiVersion: operator.openshift.io/v1alpha1
+kind: SpireServer
+metadata: { name: cluster }
+spec:
+  jwtIssuer: "https://oidc-discovery.apps.cluster.example.com"
+  caValidity: "24h"
+  defaultX509Validity: "1h"
+  defaultJWTValidity: "5m"
+  jwtKeyType: "rsa-2048"
+  persistence: { size: "5Gi", accessMode: "ReadWriteOnce" }
+  datastore: { databaseType: "sqlite3", connectionString: "/run/spire/data/datastore.sqlite3" }
+---
+apiVersion: operator.openshift.io/v1alpha1
+kind: SpireAgent
+metadata: { name: cluster }
+spec:
+  socketPath: "/run/spire/agent-sockets"
+  nodeAttestor: { k8sPSATEnabled: "true" }
+  workloadAttestors: { k8sEnabled: "true" }
+---
+apiVersion: operator.openshift.io/v1alpha1
+kind: SpiffeCSIDriver
+metadata: { name: cluster }
+spec:
+  agentSocketPath: "/run/spire/agent-sockets"
+  pluginName: "csi.spiffe.io"
+---
+apiVersion: operator.openshift.io/v1alpha1
+kind: SpireOIDCDiscoveryProvider
+metadata: { name: cluster }
+spec:
+  csiDriverName: "csi.spiffe.io"
+  jwtIssuer: "https://oidc-discovery.apps.cluster.example.com"
+  managedRoute: "true"
+----
+
+Three values must line up, or nothing works:
+
+* `SpireAgent.socketPath` == `SpiffeCSIDriver.agentSocketPath`
+* `SpiffeCSIDriver.pluginName` == `SpireOIDCDiscoveryProvider.csiDriverName` == the `driver:` in pods
+* `SpireServer.jwtIssuer` == `SpireOIDCDiscoveryProvider.jwtIssuer` (this becomes the `iss` that verifiers trust)
+
+== Registering a workload (`ClusterSPIFFEID`)
+
+Upstream SPIRE Controller Manager CRD (the operator installs it):
+
+[source,yaml]
+----
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: hermes-agent
+spec:
+  spiffeIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
+  podSelector:
+    matchLabels: { app: hermes-plain }
+  namespaceSelector:
+    matchExpressions:
+      - { key: kubernetes.io/metadata.name, operator: In, values: [user1-hermes] }
+----
+
+Only pods matching both selectors can get that ID. A different pod in the same namespace can't claim it.
+
+== Consuming it from a pod
+
+[source,yaml]
+----
+spec:
+  serviceAccountName: hermes-agent
+  containers:
+  - name: app
+    env:
+    - { name: SPIFFE_ENDPOINT_SOCKET, value: unix:///run/spire/sockets/spire-agent.sock }
+    volumeMounts:
+    - { name: spiffe-workload-api, mountPath: /run/spire/sockets, readOnly: true }
+  volumes:
+  - name: spiffe-workload-api
+    csi: { driver: csi.spiffe.io, readOnly: true }
+----
+
+Then in the app (Python `spiffe` lib, straight from the docs):
+
+[source,python]
+----
+from spiffe import JwtSource
+with JwtSource() as source:
+    jwt_svid = source.fetch_svid(audience={"https://keycloak.example.com/realms/waterplant-user1"})
+    print(jwt_svid.token)
+----
+
+Or with the CLI: `spire-agent api fetch jwt -socketPath /run/spire/sockets/spire-agent.sock -audience ++<++aud++>++`.
+
+== OIDC integration: the bridge to the non-SPIFFE world
+
+The docs show the same pattern twice, and it's exactly the pattern Keycloak would follow:
+
+*Vault (10.7.2):*
+
+[arabic]
+. `vault auth enable jwt`
+. `vault write auth/jwt/config oidc++_++discovery++_++url=https://oidc-discovery.++<++apps++>++ oidc++_++discovery++_++ca++_++pem=++<++spire-bundle++>++`
+. A role with `user++_++claim: sub`, `bound++_++audiences: client`, `bound++_++claims: ++{++ sub: spiffe://++<++td++>++/ns/demo/sa/client }`
+. The pod fetches a JWT-SVID with `-audience client` and POSTs it to `/v1/auth/jwt/login` → gets a Vault token.
+
+*Azure Entra ID (10.7.1):* the workload fetches a JWT-SVID with audience `api://AzureADTokenExchange` and Azure trusts the SPIRE issuer as a federated credential. No Azure secret in the cluster.
+
+*Pattern:* _SPIRE issues → OIDC Discovery Provider publishes keys → relying party trusts the issuer → the JWT-SVID is exchanged for a local token._ Keycloak is just another relying party (note 05).
+
+[[federation-108-short]]
+== Federation (10.8), short
+
+* Each SPIRE exposes a *bundle endpoint*: `https++_++spiffe` (SPIRE-to-SPIRE, SVID auth) or `https++_++web` (Web PKI / ACME).
+* You bootstrap trust once, create a `ClusterFederatedTrustDomain` per remote domain, and the Controller Manager keeps bundles in sync.
+* *Federation can't be turned off* once enabled. The profile is immutable.
+* For us: only relevant if hub and tenant clusters had separate SPIRE. Not needed for the lab.
+
+[[today-in-our-repo--with-ztwim]]
+== Today in our repo → with ZTWIM
+
+[cols=",",options="header",]
+|===
+|Today |With ZTWIM
+|No SPIRE CRDs (`oc get crd {vbar} grep -iE 'spire{vbar}spiffe'` → nothing) |Operator from `redhat-operators`, added to `bootstrap-infra/templates/operators.yaml` with `installPlanApproval: Manual` {plus} pinned `startingCSV` (repo convention)
+|Agent identity = `operator` username {plus} password from `.Values.keycloak.agentUser/agentPassword` (`tenant-platform/templates/agent-hermes-plain.yaml:377-379`) |`ClusterSPIFFEID` per tenant, `csi.spiffe.io` volume on the token broker sidecar, no password
+|Nothing publishes workload keys |`SpireOIDCDiscoveryProvider` Route = the JWKS Keycloak / Authorino would trust
+|===

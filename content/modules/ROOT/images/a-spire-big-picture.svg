@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -10 1500 710" width="1500" height="710" font-family="'Red Hat Text','Segoe UI',Helvetica,Arial,sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect x="0" y="-10" width="1500" height="710" fill="#ffffff"/>
+<text x="40.0" y="34.7" font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="40.0" dy="0.0">SPIRE big picture: one passport office, a consulate per node</tspan></text>
+<rect x="20" y="60" width="1180" height="620" rx="10" fill="none" stroke="#1971c2" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="32.0" y="85.1" font-size="18" fill="#1971c2" text-anchor="start"><tspan x="32.0" dy="0.0">Trust domain: spiffe://apps.cluster.example.com</tspan></text>
+<rect x="470" y="110" width="280" height="110" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="610.0" y="153.9" font-size="22" fill="#1971c2" text-anchor="middle"><tspan x="610.0" dy="0.0">SPIRE Server</tspan></text>
+<text x="610.0" y="176.8" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="610.0" dy="0.0">CA + signing keys</tspan><tspan x="610.0" dy="16.2">registration entries</tspan></text>
+<rect x="820" y="110" width="330" height="110" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="985.0" y="152.6" font-size="18" fill="#1971c2" text-anchor="middle"><tspan x="985.0" dy="0.0">Controller Manager</tspan></text>
+<text x="985.0" y="174.3" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="985.0" dy="0.0">watches ClusterSPIFFEID + pods</tspan><tspan x="985.0" dy="16.2">-&gt; creates entries</tspan></text>
+<path d="M820.0 165.0 L752.0 165.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)" marker-start="url(#ah)"/>
+<rect x="60" y="110" width="330" height="110" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="225.0" y="152.6" font-size="18" fill="#1971c2" text-anchor="middle"><tspan x="225.0" dy="0.0">OIDC Discovery Provider</tspan></text>
+<text x="225.0" y="174.3" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="225.0" dy="0.0">/.well-known/openid-configuration</tspan><tspan x="225.0" dy="16.2">/keys (JWKS)</tspan></text>
+<path d="M470.0 165.0 L392.0 165.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)"/>
+<text x="400.0" y="148.3" font-size="14" fill="#1971c2" text-anchor="start"><tspan x="400.0" dy="0.0">public keys</tspan></text>
+<rect x="60" y="290" width="320" height="370" rx="10" fill="none" stroke="#495057" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="72.0" y="315.1" font-size="18" fill="#495057" text-anchor="start"><tspan x="72.0" dy="0.0">Node 1</tspan></text>
+<rect x="100" y="340" width="240" height="80" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="220.0" y="376.4" font-size="20" fill="#1971c2" text-anchor="middle"><tspan x="220.0" dy="0.0">SPIRE Agent</tspan></text>
+<text x="220.0" y="398.7" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="220.0" dy="0.0">DaemonSet pod</tspan></text>
+<path d="M220.0 340.0 L610.0 222.0" fill="none" stroke="#1971c2" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#ah)"/>
+<text x="230.0" y="263.3" font-size="14" fill="#1971c2" text-anchor="start"><tspan x="230.0" dy="0.0">node attestation</tspan><tspan x="230.0" dy="17.5">(k8s PSAT)</tspan></text>
+<rect x="100" y="445" width="240" height="40" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="220.0" y="469.6" font-size="14" fill="#495057" text-anchor="middle"><tspan x="220.0" dy="0.0">Workload API socket (CSI)</tspan></text>
+<path d="M220.0 445.0 L220.0 422.0" fill="none" stroke="#495057" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="80" y="530" width="130" height="100" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="145.0" y="575.1" font-size="16" fill="#2f9e44" text-anchor="middle"><tspan x="145.0" dy="0.0">pod A</tspan></text>
+<text x="145.0" y="596.2" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="145.0" dy="0.0">sa: hermes</tspan></text>
+<rect x="230" y="530" width="130" height="100" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="295.0" y="575.1" font-size="16" fill="#495057" text-anchor="middle"><tspan x="295.0" dy="0.0">pod B</tspan></text>
+<text x="295.0" y="596.2" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="295.0" dy="0.0">sa: other</tspan></text>
+<path d="M145.0 530.0 L180.0 487.0" fill="none" stroke="#2f9e44" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M295.0 530.0 L260.0 487.0" fill="none" stroke="#495057" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="450" y="290" width="320" height="370" rx="10" fill="none" stroke="#495057" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="462.0" y="315.1" font-size="18" fill="#495057" text-anchor="start"><tspan x="462.0" dy="0.0">Node 2</tspan></text>
+<rect x="490" y="340" width="240" height="80" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="610.0" y="376.4" font-size="20" fill="#1971c2" text-anchor="middle"><tspan x="610.0" dy="0.0">SPIRE Agent</tspan></text>
+<text x="610.0" y="398.7" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="610.0" dy="0.0">DaemonSet pod</tspan></text>
+<path d="M610.0 340.0 L610.0 222.0" fill="none" stroke="#1971c2" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#ah)"/>
+<rect x="490" y="445" width="240" height="40" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="610.0" y="469.6" font-size="14" fill="#495057" text-anchor="middle"><tspan x="610.0" dy="0.0">Workload API socket (CSI)</tspan></text>
+<path d="M610.0 445.0 L610.0 422.0" fill="none" stroke="#495057" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="470" y="530" width="130" height="100" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="535.0" y="575.1" font-size="16" fill="#2f9e44" text-anchor="middle"><tspan x="535.0" dy="0.0">pod A</tspan></text>
+<text x="535.0" y="596.2" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="535.0" dy="0.0">sa: hermes</tspan></text>
+<rect x="620" y="530" width="130" height="100" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="685.0" y="575.1" font-size="16" fill="#495057" text-anchor="middle"><tspan x="685.0" dy="0.0">pod B</tspan></text>
+<text x="685.0" y="596.2" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="685.0" dy="0.0">sa: other</tspan></text>
+<path d="M535.0 530.0 L570.0 487.0" fill="none" stroke="#2f9e44" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M685.0 530.0 L650.0 487.0" fill="none" stroke="#495057" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="840" y="290" width="320" height="370" rx="10" fill="none" stroke="#495057" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="852.0" y="315.1" font-size="18" fill="#495057" text-anchor="start"><tspan x="852.0" dy="0.0">Node 3</tspan></text>
+<rect x="880" y="340" width="240" height="80" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="1000.0" y="376.4" font-size="20" fill="#1971c2" text-anchor="middle"><tspan x="1000.0" dy="0.0">SPIRE Agent</tspan></text>
+<text x="1000.0" y="398.7" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1000.0" dy="0.0">DaemonSet pod</tspan></text>
+<path d="M1000.0 340.0 L610.0 222.0" fill="none" stroke="#1971c2" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#ah)"/>
+<rect x="880" y="445" width="240" height="40" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="1000.0" y="469.6" font-size="14" fill="#495057" text-anchor="middle"><tspan x="1000.0" dy="0.0">Workload API socket (CSI)</tspan></text>
+<path d="M1000.0 445.0 L1000.0 422.0" fill="none" stroke="#495057" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="860" y="530" width="130" height="100" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="925.0" y="575.1" font-size="16" fill="#2f9e44" text-anchor="middle"><tspan x="925.0" dy="0.0">pod A</tspan></text>
+<text x="925.0" y="596.2" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="925.0" dy="0.0">sa: hermes</tspan></text>
+<rect x="1010" y="530" width="130" height="100" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="1075.0" y="575.1" font-size="16" fill="#495057" text-anchor="middle"><tspan x="1075.0" dy="0.0">pod B</tspan></text>
+<text x="1075.0" y="596.2" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1075.0" dy="0.0">sa: other</tspan></text>
+<path d="M925.0 530.0 L960.0 487.0" fill="none" stroke="#2f9e44" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M1075.0 530.0 L1040.0 487.0" fill="none" stroke="#495057" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="1220" y="300" width="260" height="230" rx="10" fill="#fff9db" stroke="#5c5f66" stroke-width="2"/>
+<text x="1350.0" y="363.6" font-size="15" fill="#1e1e1e" text-anchor="middle"><tspan x="1350.0" dy="0.0">Passport analogy</tspan><tspan x="1350.0" dy="18.8"> </tspan><tspan x="1350.0" dy="18.8">Server = passport office</tspan><tspan x="1350.0" dy="18.8">Agent = consulate</tspan><tspan x="1350.0" dy="18.8">SVID = passport</tspan><tspan x="1350.0" dy="18.8">SPIFFE ID = your name</tspan><tspan x="1350.0" dy="18.8">Bundle = stamps guards trust</tspan></text>
+</svg>

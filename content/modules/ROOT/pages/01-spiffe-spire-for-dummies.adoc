@@ -1,0 +1,110 @@
+= SPIFFE and SPIRE, for dummies
+:navtitle: 1. SPIFFE & SPIRE for dummies
+
+[NOTE]
+====
+Sources: link:{repo-url}/blob/main/sources/ocp419-ztwim-chapter10.md[sources/ocp419-ztwim-chapter10.md^] (10.1, 10.2.5), spiffe.io concepts.
+
+link:{attachmentsdir}/spiffe-spire-explained.html[Interactive version of this chapter^]
+====
+
+.SPIRE big picture
+image::a-spire-big-picture.svg[SPIRE big picture,link=self]
+
+.Attestation sequence
+image::b-attestation-sequence.svg[Attestation sequence,link=self]
+
+== The problem in one sentence
+
+A pod needs to prove _who it is_ to something else (Keycloak, Vault, another service, a cloud API). Today we do that with a *secret*: a password, an API key, a client secret in a Kubernetes Secret. Secrets can be copied, leaked into git and reused from a laptop. Whoever holds the secret _is_ the workload.
+
+SPIFFE/SPIRE replaces "what you *know*" (a secret) with "what you *are*" (proven by the platform you run on).
+
+== The airport analogy
+
+[cols=",,",options="header",]
+|===
+|Real world |SPIFFE / SPIRE |On OpenShift
+|The country |*Trust domain* |e.g. `apps.cluster-xyz.example.com`
+|Passport office (central, signs passports) |*SPIRE Server* |`spire-server-0` StatefulSet
+|Consulate in every city |*SPIRE Agent* (one per node) |`spire-agent` DaemonSet
+|The counter where you queue |*Workload API* (a Unix socket) |`/run/spire/sockets/spire-agent.sock`, mounted by the CSI driver
+|Your passport number / name |*SPIFFE ID* |`spiffe://++<++trust-domain++>++/ns/++<++namespace++>++/sa/++<++serviceaccount++>++`
+|The physical passport |*SVID* (SPIFFE Verifiable Identity Document) |X.509 cert or JWT
+|The list of passport office stamps border guards trust |*Trust bundle* |ConfigMap `spire-bundle` / JWKS endpoint
+|The rules "who gets which passport" |*Registration entries* |`ClusterSPIFFEID` CRs
+|Countries that accept each other's passports |*Federation* |`ClusterFederatedTrustDomain`
+|===
+
+The key bit: *you never fill in a form with your name*. The consulate _looks at you_ (attestation) and decides who you are. You can't ask for someone else's passport.
+
+== SPIFFE vs SPIRE
+
+* *SPIFFE* = the _standard_ (the spec). It defines the ID format, the SVID formats and the Workload API.
+* *SPIRE* = the _reference implementation_ of that standard: Server {plus} Agent {plus} plugins.
+* *ZTWIM* = Red Hat's operator that installs and runs SPIRE on OpenShift (see note 02).
+
+== The SPIFFE ID
+
+....
+spiffe://apps.cluster-xyz.example.com/ns/user1-hermes/sa/hermes-agent
+         └──────── trust domain ────────┘└──────── workload path ──────┘
+....
+
+It's just a URI. It's _not_ a secret. Knowing it gives you nothing. Being able to _prove_ it is the whole point.
+
+== The two kinds of SVID
+
+[cols=",,",options="header",]
+|===
+| |X.509-SVID |JWT-SVID
+|What |A short-lived TLS certificate {plus} private key |A short-lived signed JWT
+|Where's the SPIFFE ID |URI SAN of the certificate |the `sub` claim
+|Used for |mTLS between services |Bearer token / client assertion over HTTP, crossing proxies
+|Default TTL in ZTWIM |`defaultX509Validity: 1h` |`defaultJWTValidity: 5m`
+|Proves possession? |Yes (private key never leaves) |No, it's a bearer token. That's why it's audience-scoped and very short-lived
+|How the other side verifies |Trust bundle (CA certs) |JWKS (public keys) published by the OIDC Discovery Provider
+|===
+
+JWT-SVID details in note 04.
+
+== Attestation: how the consulate "looks at you"
+
+Two levels, both need to pass:
+
+[arabic]
+. *Node attestation* (once per node). The agent proves to the server _"I'm the real agent on a real node of this cluster"_. On OpenShift ZTWIM uses *k8s PSAT* (Projected Service Account Token): the agent shows a Kubernetes-signed token, the server checks it with the Kubernetes TokenReview API. If OK, the agent gets its own *agent SVID* {plus} the trust bundle.
+. *Workload attestation* (every time a workload asks). A process connects to the agent socket. The agent asks the _kernel_ which PID is on the other end, then asks the _kubelet_ about that PID: which pod, namespace, ServiceAccount, labels, image. Those are the *selectors*. If they match a registration entry, the agent hands over the SVID.
+
+The workload sends *nothing* to prove itself. No token, no password. The agent figures it out from the outside. That's why you can't fake it from inside the container.
+
+[[the-full-workflow-from-the-ocp-docs-1025-simplified]]
+== The full workflow (from the OCP docs, 10.2.5, simplified)
+
+[arabic]
+. Operator deploys SPIRE Server, Agent, CSI driver, OIDC provider.
+. A node starts. Its SPIRE Agent connects to the SPIRE Server.
+. *Node attestation*: agent sends proof (PSAT), server checks it.
+. Server returns an *agent SVID {plus} trust bundle*.
+. A pod starts and mounts the Workload API socket (CSI driver).
+. The app calls `FetchX509SVID` / `FetchJWTSVID(audience=...)` on the socket.
+. *Workload attestation*: agent inspects the caller (pod, ns, sa...).
+. Agent matches selectors against registration entries (synced from the server).
+. Agent returns the *workload SVID {plus} trust bundle*. It auto-rotates before expiry.
+. The app presents the SVID to someone else, who verifies it with the trust bundle / JWKS.
+
+== Why it matters for agents (AgentOps)
+
+* *No secret to steal*: an agent hijacked by prompt injection can't exfiltrate a long-lived key, because there isn't one. A JWT-SVID lives for 5 minutes and is bound to one audience.
+* *Identity = where it runs*: "this is Hermie, in `user1-hermes`, under SA `hermes-agent`", proven by the platform, not claimed by the agent.
+* *Same idea Module 2 already teaches*: with `--provider maas` OpenShell keeps the model key out of the sandbox. SPIFFE does the same for _identity_.
+
+== Glossary in 30 seconds
+
+* *Trust domain*: the boundary of one SPIRE Server's authority.
+* *SVID*: the identity document (cert or JWT).
+* *Workload API*: local socket where workloads get their SVIDs. No auth needed, the agent attests the caller.
+* *Selectors*: attributes used to match a workload (`k8s:ns:foo`, `k8s:sa:bar`).
+* *Registration entry*: SPIFFE ID {plus} selectors {plus} parent (which agent can issue it).
+* *Trust bundle*: CA certs (X.509) and public keys (JWT) to verify SVIDs from a trust domain.
+* *Federation*: exchanging bundles so two trust domains can verify each other.

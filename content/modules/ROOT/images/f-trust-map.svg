@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 -10 1260 770" width="1260" height="770" font-family="'Red Hat Text','Segoe UI',Helvetica,Arial,sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect x="20" y="-10" width="1260" height="770" fill="#ffffff"/>
+<text x="40.0" y="34.7" font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="40.0" dy="0.0">Trust map: who verifies whom, with which key</tspan></text>
+<rect x="520" y="70" width="300" height="100" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="670.0" y="117.0" font-size="22" fill="#1971c2" text-anchor="middle"><tspan x="670.0" dy="0.0">SPIRE Server</tspan></text>
+<text x="670.0" y="140.0" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="670.0" dy="0.0">root of workload trust</tspan></text>
+<rect x="80" y="260" width="280" height="100" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="220.0" y="306.4" font-size="20" fill="#1971c2" text-anchor="middle"><tspan x="220.0" dy="0.0">SPIRE Agent</tspan></text>
+<text x="220.0" y="328.7" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="220.0" dy="0.0">trusts server bundle</tspan></text>
+<rect x="520" y="260" width="300" height="100" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="670.0" y="305.4" font-size="17" fill="#1971c2" text-anchor="middle"><tspan x="670.0" dy="0.0">OIDC Discovery Provider</tspan></text>
+<text x="670.0" y="326.9" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="670.0" dy="0.0">re-publishes JWT keys</tspan></text>
+<rect x="960" y="260" width="300" height="100" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="1110.0" y="306.4" font-size="20" fill="#495057" text-anchor="middle"><tspan x="1110.0" dy="0.0">Kubernetes API</tspan></text>
+<text x="1110.0" y="328.7" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1110.0" dy="0.0">TokenReview</tspan></text>
+<rect x="80" y="460" width="280" height="100" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="220.0" y="505.2" font-size="16" fill="#2f9e44" text-anchor="middle"><tspan x="220.0" dy="0.0">Sandbox / OpenShell</tspan><tspan x="220.0" dy="20.0">supervisor + gateway</tspan></text>
+<rect x="520" y="460" width="300" height="100" rx="10" fill="#f3d9fa" stroke="#9c36b5" stroke-width="2"/>
+<text x="670.0" y="507.0" font-size="22" fill="#9c36b5" text-anchor="middle"><tspan x="670.0" dy="0.0">Keycloak realm</tspan></text>
+<text x="670.0" y="530.0" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="670.0" dy="0.0">own signing keys</tspan></text>
+<rect x="960" y="460" width="300" height="100" rx="10" fill="#ffe8cc" stroke="#e8590c" stroke-width="2"/>
+<text x="1110.0" y="504.6" font-size="18" fill="#e8590c" text-anchor="middle"><tspan x="1110.0" dy="0.0">MCP Gateway</tspan><tspan x="1110.0" dy="22.5">(Authorino)</tspan></text>
+<path d="M300.0 258.0 L560.0 172.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)"/>
+<text x="250.0" y="203.3" font-size="14" fill="#1971c2" text-anchor="start"><tspan x="250.0" dy="0.0">agent SVID (signed by server)</tspan></text>
+<path d="M820.0 120.0 L1100.0 258.0" fill="none" stroke="#495057" stroke-width="2" marker-end="url(#ah)"/>
+<text x="900.0" y="173.3" font-size="14" fill="#495057" text-anchor="start"><tspan x="900.0" dy="0.0">server checks agent PSAT</tspan></text>
+<path d="M670.0 172.0 L670.0 258.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)"/>
+<text x="680.0" y="213.3" font-size="14" fill="#1971c2" text-anchor="start"><tspan x="680.0" dy="0.0">JWT keys</tspan></text>
+<path d="M220.0 362.0 L220.0 458.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)"/>
+<text x="230.0" y="408.3" font-size="14" fill="#1971c2" text-anchor="start"><tspan x="230.0" dy="0.0">workload SVID</tspan></text>
+<path d="M362.0 510.0 L518.0 510.0" fill="none" stroke="#9c36b5" stroke-width="2" marker-end="url(#ah)"/>
+<text x="365.0" y="493.3" font-size="14" fill="#9c36b5" text-anchor="start"><tspan x="365.0" dy="0.0">JWT-SVID as client auth</tspan></text>
+<path d="M670.0 458.0 L670.0 362.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)"/>
+<text x="680.0" y="403.3" font-size="14" fill="#1971c2" text-anchor="start"><tspan x="680.0" dy="0.0">Keycloak fetches JWKS</tspan><tspan x="680.0" dy="17.5">to verify the SVID</tspan></text>
+<path d="M822.0 510.0 L958.0 510.0" fill="none" stroke="#9c36b5" stroke-width="2" marker-end="url(#ah)"/>
+<text x="830.0" y="538.3" font-size="14" fill="#9c36b5" text-anchor="start"><tspan x="830.0" dy="0.0">Authorino fetches</tspan><tspan x="830.0" dy="17.5">realm JWKS</tspan></text>
+<path d="M220.0 562.0 L1110.0 600.0" fill="none" stroke="#e8590c" stroke-width="2" marker-end="url(#ah)"/>
+<text x="500.0" y="614.2" font-size="15" fill="#e8590c" text-anchor="start"><tspan x="500.0" dy="0.0">Bearer = Keycloak token (NOT the SVID)</tspan></text>
+<path d="M820.0 300.0 L958.0 400.0" fill="none" stroke="#1971c2" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#ah)"/>
+<text x="880.0" y="388.3" font-size="14" fill="#1971c2" text-anchor="start"><tspan x="880.0" dy="0.0">option: verify JWT-SVID</tspan><tspan x="880.0" dy="17.5">directly (customHeader)</tspan></text>
+<rect x="80" y="660" width="1180" height="80" rx="10" fill="#fff9db" stroke="#5c5f66" stroke-width="2"/>
+<text x="670.0" y="695.5" font-size="15" fill="#1e1e1e" text-anchor="middle"><tspan x="670.0" dy="0.0">Two independent roots: SPIRE signs WORKLOAD identity. Keycloak signs USER identity + permissions.</tspan><tspan x="670.0" dy="18.8">Keycloak bridges them: it accepts a SPIRE-signed SVID and mints its own token that names both.</tspan></text>
+</svg>

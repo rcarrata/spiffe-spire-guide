@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -10 1500 730" width="1500" height="730" font-family="'Red Hat Text','Segoe UI',Helvetica,Arial,sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect x="0" y="-10" width="1500" height="730" fill="#ffffff"/>
+<text x="40.0" y="34.7" font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="40.0" dy="0.0">Our lab: today vs target (from repo + Robert&#x27;s design note)</tspan></text>
+<rect x="20" y="60" width="640" height="640" rx="10" fill="none" stroke="#c92a2a" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="32.0" y="85.1" font-size="18" fill="#c92a2a" text-anchor="start"><tspan x="32.0" dy="0.0">TODAY (main branch)</tspan></text>
+<rect x="50" y="110" width="580" height="90" rx="10" fill="#ffe3e3" stroke="#c92a2a" stroke-width="2"/>
+<text x="340.0" y="141.9" font-size="16" fill="#c92a2a" text-anchor="middle"><tspan x="340.0" dy="0.0">mcp-token-refresh.py (sidecar / in sandbox)</tspan></text>
+<text x="340.0" y="163.1" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="340.0" dy="0.0">grant_type=password as realm user &#x27;operator&#x27;</tspan><tspan x="340.0" dy="16.2">MCP_USERNAME / MCP_PASSWORD env vars (bridge.yaml:487-489)</tspan></text>
+<rect x="50" y="240" width="580" height="80" rx="10" fill="#f3d9fa" stroke="#9c36b5" stroke-width="2"/>
+<text x="340.0" y="275.1" font-size="16" fill="#9c36b5" text-anchor="middle"><tspan x="340.0" dy="0.0">Keycloak public client &#x27;mcp-gateway&#x27;</tspan></text>
+<text x="340.0" y="296.2" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="340.0" dy="0.0">token: azp=mcp-gateway, NO sub, NO aud, 18 tool roles</tspan></text>
+<rect x="50" y="360" width="580" height="70" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="340.0" y="400.2" font-size="16" fill="#2f9e44" text-anchor="middle"><tspan x="340.0" dy="0.0">gateway.json -&gt; Hermie reads it</tspan></text>
+<rect x="50" y="470" width="580" height="100" rx="10" fill="#ffe8cc" stroke="#e8590c" stroke-width="2"/>
+<text x="340.0" y="506.6" font-size="15" fill="#e8590c" text-anchor="middle"><tspan x="340.0" dy="0.0">MCP Gateway AuthPolicy (mcp-gateway-policy.yaml)</tspan></text>
+<text x="340.0" y="527.5" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="340.0" dy="0.0">mcp: jwt issuerUrl realm   |   mcps: tool:X in resource_access</tspan><tspan x="340.0" dy="16.2">asks: does OPERATOR hold tool:X? (no agent in the question)</tspan></text>
+<rect x="50" y="600" width="580" height="70" rx="10" fill="#ffe3e3" stroke="#c92a2a" stroke-width="2"/>
+<text x="340.0" y="630.8" font-size="14" fill="#c92a2a" text-anchor="middle"><tspan x="340.0" dy="0.0">OpenShell chart 0.0.92 / CLI 0.1: static credentials only,</tspan><tspan x="340.0" dy="17.5">no token_grant / jwt-spiffe</tspan></text>
+<path d="M340.0 200.0 L340.0 238.0" fill="none" stroke="#c92a2a" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M340.0 320.0 L340.0 358.0" fill="none" stroke="#c92a2a" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M340.0 430.0 L340.0 468.0" fill="none" stroke="#c92a2a" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="700" y="60" width="780" height="640" rx="10" fill="none" stroke="#2f9e44" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="712.0" y="85.1" font-size="18" fill="#2f9e44" text-anchor="start"><tspan x="712.0" dy="0.0">TARGET</tspan></text>
+<rect x="730" y="110" width="340" height="90" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="900.0" y="142.3" font-size="17" fill="#1971c2" text-anchor="middle"><tspan x="900.0" dy="0.0">ZTWIM installed</tspan></text>
+<text x="900.0" y="163.7" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="900.0" dy="0.0">v1.1.3, ClusterSPIFFEID per tenant</tspan><tspan x="900.0" dy="16.2">OIDC provider publishes JWKS</tspan></text>
+<rect x="1110" y="110" width="340" height="90" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="1280.0" y="142.3" font-size="17" fill="#2f9e44" text-anchor="middle"><tspan x="1280.0" dy="0.0">Path A: hermes-plain</tspan></text>
+<text x="1280.0" y="163.7" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1280.0" dy="0.0">broker sidecar + csi.spiffe.io</tspan><tspan x="1280.0" dy="16.2">works without OpenShell upgrade</tspan></text>
+<rect x="730" y="240" width="720" height="90" rx="10" fill="#f3d9fa" stroke="#9c36b5" stroke-width="2"/>
+<text x="1090.0" y="271.9" font-size="16" fill="#9c36b5" text-anchor="middle"><tspan x="1090.0" dy="0.0">Broker: password grant (operator) -&gt; RFC 8693 exchange</tspan></text>
+<text x="1090.0" y="293.1" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1090.0" dy="0.0">client auth = JWT-SVID (private_key_jwt / federated) or X509-SVID (tls_client_auth)</tspan><tspan x="1090.0" dy="16.2">result: sub=operator, azp=hermes-agent</tspan></text>
+<rect x="730" y="370" width="720" height="100" rx="10" fill="#ffe8cc" stroke="#e8590c" stroke-width="2"/>
+<text x="1090.0" y="406.9" font-size="16" fill="#e8590c" text-anchor="middle"><tspan x="1090.0" dy="0.0">AuthPolicy adds one CEL predicate (AND-ed in patternMatching)</tspan></text>
+<text x="1090.0" y="428.1" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1090.0" dy="0.0">has(auth.identity.azp) &amp;&amp; auth.identity.azp == &#x27;hermes-agent&#x27;</tspan><tspan x="1090.0" dy="16.2">operator-only token -&gt; 403, exchanged token + role -&gt; allow</tspan></text>
+<rect x="730" y="500" width="720" height="70" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="1090.0" y="539.9" font-size="15" fill="#1971c2" text-anchor="middle"><tspan x="1090.0" dy="0.0">jti -&gt; Authorino log, plant-api audit, raised_by_verified, MLflow tags</tspan></text>
+<rect x="730" y="600" width="720" height="70" rx="10" fill="#ffe3e3" stroke="#c92a2a" stroke-width="2" stroke-dasharray="8 6"/>
+<text x="1090.0" y="639.9" font-size="15" fill="#c92a2a" text-anchor="middle"><tspan x="1090.0" dy="0.0">Path B: sandbox via OpenShell token_grant (needs 0.0.92 -&gt; &gt;= v0.0.113 upgrade)</tspan></text>
+<path d="M1090.0 200.0 L1090.0 238.0" fill="none" stroke="#2f9e44" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M1090.0 330.0 L1090.0 368.0" fill="none" stroke="#2f9e44" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M1090.0 470.0 L1090.0 498.0" fill="none" stroke="#2f9e44" stroke-width="2" marker-end="url(#ah)"/>
+</svg>

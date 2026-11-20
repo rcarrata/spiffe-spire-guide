@@ -1,0 +1,61 @@
+= SPIFFE / SPIRE Workload Identity Guide
+:navtitle: Overview
+
+Learning notes on workload identity for AI agents on {ocp-short}: SPIFFE and SPIRE from zero, what the {ztwim} runs, how an OpenShell sandbox trades a JWT-SVID for a Keycloak token, and where the MCP Gateway enforces it.
+
+Written against the AgentOps in Action lab (Hermie, the waterplant assistant), so every chapter ends with a "today in our repo -> with SPIFFE" table.
+
+[NOTE]
+====
+link:{attachmentsdir}/spiffe-spire-explained.html[*Open the interactive field guide*^] (opens in a new tab) +
+_Attestation step-through | OpenShell token exchange step-through | clickable JWT-SVID | MCP Gateway allow/403 toggle_ +
+Same content as these pages, condensed and visual. Start there for the picture, then come back here for the details.
+====
+
+IMPORTANT: Not official documentation. Upstream features change fast (OpenShell, Keycloak SPIFFE support). Versions and status are as of 2026-11-20, see xref:sources.adoc[Sources].
+
+== Reading path
+
+[cols="1,3,2",options="header"]
+|===
+|Chapter |What you learn |Diagram
+|xref:01-spiffe-spire-for-dummies.adoc[1. SPIFFE & SPIRE]
+|Trust domain, SPIFFE ID, SVIDs, node and workload attestation, with a passport office analogy
+|image:a-spire-big-picture.svg[width=160]
+|xref:02-ztwim-on-openshift.adoc[2. ZTWIM]
+|The custom resources, what each one deploys, the values that must match, `ClusterSPIFFEID`, the OIDC bridge
+|image:c-ztwim-crds.svg[width=160]
+|xref:03-sandbox-openshell-gateway-keycloak-flow.adoc[3. Sandbox -> Keycloak]
+|OpenShell dynamic token grants: `client_credentials` vs the two-stage `token_exchange`, SPIRE Broker API
+|image:e-sandbox-to-mcp-end-to-end.svg[width=160]
+|xref:04-jwt-svid-anatomy.adoc[4. JWT-SVID]
+|Every claim, who sets it, how it's verified, and how it differs from today's Keycloak token
+|image:d-jwt-svid-card.svg[width=160]
+|xref:05-keycloak-openshell-spire-interactions.adoc[5. Keycloak + SPIRE]
+|Who trusts whom, Keycloak's `spiffe` identity provider and `federated-jwt` authenticator, version status
+|image:f-trust-map.svg[width=160]
+|xref:06-mcp-gateway-integration.adoc[6. MCP Gateway]
+|Authorino's two listeners, the `azp` intersection rule, the direct SVID fallback, `jti` provenance
+|image:g-our-lab-today-vs-target.svg[width=160]
+|===
+
+== Key findings
+
+* *Keycloak already has SPIFFE client authentication.* A `spiffe` identity provider plus the `federated-jwt` client authenticator, preview since 26.4 and still preview in 26.8.2. RHBK 26.4.18 has the code, but the feature is off and the Keycloak is a shared RHDP instance.
+* *On 26.4 the client id probably has to equal the SPIFFE ID.* From 26.5 a separate "Federated subject" field removes that need.
+* *OpenShell `token_exchange` shipped in v0.0.113.* The final token has `sub` = the user and `azp` = the sandbox SPIFFE ID. The lab runs chart 0.0.92, which has no token grants.
+* *The SPIRE Broker API for shared supervisors is not released yet* (OpenShell PR #4732, merged after v0.1.9).
+* *The MCP Gateway needs one extra CEL predicate*, because Authorino authentication rules are OR, not AND. Both facts (user and agent) have to live in one token.
+
+== Open questions
+
+. ZTWIM sets `iss` to the OIDC discovery URL. Keycloak requires `iss` to match the identity provider, or to be missing when `sub` is a `spiffe://` URI. Test it.
+. Keycloak wants one unique SPIFFE ID per client, but OpenShell sandbox IDs end in a UUID per sandbox. How do you register clients for sandboxes that come and go?
+
+== Repo layout
+
+* `content/` - these pages (Antora)
+* `content/modules/ROOT/assets/attachments/spiffe-spire-explained.html` - the interactive page
+* `diagrams/*.excalidraw` - diagram sources, open them in https://excalidraw.com[excalidraw.com^]
+* `scripts/gen_excalidraw.py`, `scripts/excalidraw_to_svg.py` - regenerate the diagrams and their SVGs
+* `sources/` - downloaded reference material as markdown, tracked in `sources/INDEX.md`

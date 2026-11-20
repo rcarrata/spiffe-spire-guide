@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -10 1540 730" width="1540" height="730" font-family="'Red Hat Text','Segoe UI',Helvetica,Arial,sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect x="0" y="-10" width="1540" height="730" fill="#ffffff"/>
+<text x="40.0" y="34.7" font-size="26" fill="#1e1e1e" text-anchor="start"><tspan x="40.0" dy="0.0">ZTWIM on OpenShift: CRs you write -&gt; what the operator runs</tspan></text>
+<rect x="20" y="60" width="380" height="640" rx="10" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="32.0" y="85.1" font-size="18" fill="#1e1e1e" text-anchor="start"><tspan x="32.0" dy="0.0">You write (all name: cluster)</tspan></text>
+<rect x="40" y="100" width="340" height="66" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="210.0" y="127.8" font-size="15" fill="#495057" text-anchor="middle"><tspan x="210.0" dy="0.0">1 ZeroTrustWorkloadIdentityManager</tspan></text>
+<text x="210.0" y="148.6" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="210.0" dy="0.0">trustDomain, clusterName</tspan></text>
+<rect x="40" y="182" width="340" height="66" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="210.0" y="209.8" font-size="15" fill="#495057" text-anchor="middle"><tspan x="210.0" dy="0.0">2 SpireServer</tspan></text>
+<text x="210.0" y="230.6" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="210.0" dy="0.0">jwtIssuer, TTLs, datastore</tspan></text>
+<rect x="40" y="264" width="340" height="66" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="210.0" y="291.8" font-size="15" fill="#495057" text-anchor="middle"><tspan x="210.0" dy="0.0">3 SpireAgent</tspan></text>
+<text x="210.0" y="312.6" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="210.0" dy="0.0">k8sPSAT, socketPath</tspan></text>
+<rect x="40" y="346" width="340" height="66" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="210.0" y="373.8" font-size="15" fill="#495057" text-anchor="middle"><tspan x="210.0" dy="0.0">4 SpiffeCSIDriver</tspan></text>
+<text x="210.0" y="394.6" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="210.0" dy="0.0">csi.spiffe.io</tspan></text>
+<rect x="40" y="428" width="340" height="66" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="210.0" y="455.8" font-size="15" fill="#495057" text-anchor="middle"><tspan x="210.0" dy="0.0">5 SpireOIDCDiscoveryProvider</tspan></text>
+<text x="210.0" y="476.6" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="210.0" dy="0.0">jwtIssuer, managedRoute</tspan></text>
+<rect x="40" y="510" width="340" height="66" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="210.0" y="537.8" font-size="15" fill="#495057" text-anchor="middle"><tspan x="210.0" dy="0.0">+ ClusterSPIFFEID</tspan></text>
+<text x="210.0" y="558.6" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="210.0" dy="0.0">which pods = which ID</tspan></text>
+<rect x="40" y="592" width="340" height="66" rx="10" fill="#f1f3f5" stroke="#495057" stroke-width="2"/>
+<text x="210.0" y="619.8" font-size="15" fill="#495057" text-anchor="middle"><tspan x="210.0" dy="0.0">+ ClusterFederatedTrustDomain</tspan></text>
+<text x="210.0" y="640.6" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="210.0" dy="0.0">trust other domains</tspan></text>
+<rect x="470" y="60" width="260" height="70" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="600.0" y="101.5" font-size="20" fill="#1971c2" text-anchor="middle"><tspan x="600.0" dy="0.0">ZTWIM operator</tspan></text>
+<path d="M400.0 95.0 L468.0 95.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)"/>
+<text x="405.0" y="83.3" font-size="14" fill="#1971c2" text-anchor="start"><tspan x="405.0" dy="0.0">reconciles</tspan></text>
+<rect x="450" y="160" width="760" height="540" rx="10" fill="none" stroke="#1971c2" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="462.0" y="185.1" font-size="18" fill="#1971c2" text-anchor="start"><tspan x="462.0" dy="0.0">ns: zero-trust-workload-identity-manager</tspan></text>
+<rect x="480" y="210" width="330" height="120" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="645.0" y="249.2" font-size="17" fill="#1971c2" text-anchor="middle"><tspan x="645.0" dy="0.0">StatefulSet spire-server</tspan></text>
+<text x="645.0" y="270.6" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="645.0" dy="0.0">container: spire-server</tspan><tspan x="645.0" dy="16.2">container: controller-manager</tspan><tspan x="645.0" dy="16.2">PVC (sqlite3)</tspan></text>
+<rect x="850" y="210" width="330" height="120" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="1015.0" y="255.4" font-size="15" fill="#1971c2" text-anchor="middle"><tspan x="1015.0" dy="0.0">Deployment</tspan><tspan x="1015.0" dy="18.8">spire-spiffe-oidc-discovery-provider</tspan></text>
+<text x="1015.0" y="295.0" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1015.0" dy="0.0">+ Route oidc-discovery.&lt;apps&gt;</tspan></text>
+<rect x="480" y="380" width="330" height="90" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="645.0" y="420.4" font-size="17" fill="#1971c2" text-anchor="middle"><tspan x="645.0" dy="0.0">DaemonSet spire-agent</tspan></text>
+<text x="645.0" y="441.9" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="645.0" dy="0.0">1 per node</tspan></text>
+<rect x="850" y="380" width="330" height="90" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="1015.0" y="419.8" font-size="15" fill="#1971c2" text-anchor="middle"><tspan x="1015.0" dy="0.0">DaemonSet spire-spiffe-csi-driver</tspan></text>
+<text x="1015.0" y="440.6" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1015.0" dy="0.0">mounts the agent socket</tspan></text>
+<rect x="480" y="520" width="330" height="80" rx="10" fill="#d0ebff" stroke="#1971c2" stroke-width="2"/>
+<text x="645.0" y="555.1" font-size="16" fill="#1971c2" text-anchor="middle"><tspan x="645.0" dy="0.0">ConfigMap spire-bundle</tspan></text>
+<text x="645.0" y="576.2" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="645.0" dy="0.0">trust bundle (CA certs)</tspan></text>
+<path d="M645.0 380.0 L645.0 332.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)" marker-start="url(#ah)"/>
+<path d="M812.0 425.0 L848.0 425.0" fill="none" stroke="#1971c2" stroke-width="2" marker-end="url(#ah)" marker-start="url(#ah)"/>
+<path d="M645.0 330.0 L645.0 518.0" fill="none" stroke="#1971c2" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#ah)"/>
+<rect x="850" y="520" width="330" height="140" rx="10" fill="#fff9db" stroke="#5c5f66" stroke-width="2"/>
+<text x="1015.0" y="568.3" font-size="14" fill="#1e1e1e" text-anchor="middle"><tspan x="1015.0" dy="0.0">Must match!</tspan><tspan x="1015.0" dy="17.5">agent.socketPath = csi.agentSocketPath</tspan><tspan x="1015.0" dy="17.5">csi.pluginName = oidc.csiDriverName</tspan><tspan x="1015.0" dy="17.5">server.jwtIssuer = oidc.jwtIssuer</tspan></text>
+<path d="M380.0 590.0 L478.0 260.0" fill="none" stroke="#1971c2" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#ah)"/>
+<text x="390.0" y="443.3" font-size="14" fill="#1971c2" text-anchor="start"><tspan x="390.0" dy="0.0">entries</tspan></text>
+<rect x="1260" y="200" width="260" height="140" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="2"/>
+<text x="1390.0" y="241.3" font-size="18" fill="#2f9e44" text-anchor="middle"><tspan x="1390.0" dy="0.0">Your pod</tspan></text>
+<text x="1390.0" y="263.1" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1390.0" dy="0.0">volume: csi.spiffe.io</tspan><tspan x="1390.0" dy="16.2">SPIFFE_ENDPOINT_SOCKET=</tspan><tspan x="1390.0" dy="16.2">unix:///run/spire/sockets/</tspan><tspan x="1390.0" dy="16.2">spire-agent.sock</tspan></text>
+<path d="M1182.0 425.0 L1300.0 342.0" fill="none" stroke="#2f9e44" stroke-width="2" marker-end="url(#ah)"/>
+<text x="1220.0" y="413.3" font-size="14" fill="#2f9e44" text-anchor="start"><tspan x="1220.0" dy="0.0">socket</tspan></text>
+<rect x="1260" y="420" width="260" height="120" rx="10" fill="#f3d9fa" stroke="#9c36b5" stroke-width="2"/>
+<text x="1390.0" y="456.9" font-size="16" fill="#9c36b5" text-anchor="middle"><tspan x="1390.0" dy="0.0">Keycloak / Vault /</tspan><tspan x="1390.0" dy="20.0">Authorino / Entra</tspan></text>
+<text x="1390.0" y="498.1" font-size="13" fill="#5c5f66" text-anchor="middle"><tspan x="1390.0" dy="0.0">trust the issuer,</tspan><tspan x="1390.0" dy="16.2">fetch JWKS</tspan></text>
+<path d="M1182.0 270.0 L1258.0 470.0" fill="none" stroke="#9c36b5" stroke-width="2" marker-end="url(#ah)"/>
+<text x="1200.0" y="343.3" font-size="14" fill="#9c36b5" text-anchor="start"><tspan x="1200.0" dy="0.0">JWKS</tspan></text>
+</svg>

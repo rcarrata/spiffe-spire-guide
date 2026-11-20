@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="utf-8">
+<title>Workload Identity Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700;900&family=Red+Hat+Text:ital,wght@0,400;0,500;0,700;1,400&family=Red+Hat+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: field-guide column (~72ch) with a sticky chapter rail on wide screens; diagrams break out wider.
+   Color: one hue per component, identical to the Excalidraw files (SPIRE blue, Keycloak purple,
+   OpenShell green, MCP Gateway orange, OpenShift grey). Neutrals lean slightly blue. */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --sunk:#eef0f4; --line:#d9dde5; --fg:#1b1f27; --muted:#5a6272;
+  --accent:#1c5fb8;
+  --spire:#1971c2; --spire-bg:#e3f0fd;
+  --kc:#8e2fa8;    --kc-bg:#f6e6fa;
+  --os:#2b8a3e;    --os-bg:#e2f6e5;
+  --gw:#d9480f;    --gw-bg:#fff0e3;
+  --k8s:#495057;   --k8s-bg:#eceef1;
+  --ok:#2b8a3e; --bad:#c92a2a; --bad-bg:#fdecec; --warn:#b26a00; --warn-bg:#fff5db;
+  --code-bg:#f0f2f6;
+  --f-display:"Red Hat Display", "Segoe UI", system-ui, sans-serif;
+  --f-text:"Red Hat Text", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"Red Hat Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1218; --surface:#171b23; --sunk:#1d222c; --line:#2c3340; --fg:#e6e9ef; --muted:#9aa3b2;
+  --accent:#6ea8ff;
+  --spire:#5fa8f0; --spire-bg:#13263b; --kc:#d07ce6; --kc-bg:#2b1832; --os:#5fcf74; --os-bg:#132a19;
+  --gw:#ff8f50; --gw-bg:#33200f; --k8s:#aab2bd; --k8s-bg:#22272f;
+  --ok:#5fcf74; --bad:#ff6b6b; --bad-bg:#361717; --warn:#f2b84b; --warn-bg:#33270e; --code-bg:#1b2029;
+  color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0f1218; --surface:#171b23; --sunk:#1d222c; --line:#2c3340; --fg:#e6e9ef; --muted:#9aa3b2;
+  --accent:#6ea8ff;
+  --spire:#5fa8f0; --spire-bg:#13263b; --kc:#d07ce6; --kc-bg:#2b1832; --os:#5fcf74; --os-bg:#132a19;
+  --gw:#ff8f50; --gw-bg:#33200f; --k8s:#aab2bd; --k8s-bg:#22272f;
+  --ok:#5fcf74; --bad:#ff6b6b; --bad-bg:#361717; --warn:#f2b84b; --warn-bg:#33270e; --code-bg:#1b2029;
+  color-scheme:dark; }
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:24px}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none!important; animation:none!important} }
+body{background:var(--bg); color:var(--fg); font-family:var(--f-text); font-size:16px; line-height:1.6;
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:0 64px}
+a{color:var(--accent)}
+code, .mono{font-family:var(--f-mono); font-size:.88em}
+:not(pre)>code{background:var(--code-bg); padding:.1em .35em; border-radius:4px; overflow-wrap:anywhere}
+pre{background:var(--code-bg); border:1px solid var(--line); border-radius:8px; padding:14px 16px; overflow-x:auto; font-size:13.5px; line-height:1.5; margin:0}
+pre code{font-size:inherit}
+h1,h2,h3{font-family:var(--f-display); line-height:1.15; text-wrap:balance; margin:0}
+h2{font-size:clamp(1.6rem, 3.4vw, 2.2rem); font-weight:900; letter-spacing:-.01em}
+h3{font-size:1.2rem; font-weight:700; margin-top:8px}
+p{margin:0}
+.wrap{max-width:1180px; margin:0 auto; display:grid; grid-template-columns:220px minmax(0,1fr); gap:48px}
+@media (max-width:960px){ .wrap{grid-template-columns:minmax(0,1fr)} .rail{display:none} }
+
+/* rail */
+.rail{position:sticky; top:24px; align-self:start; padding-top:40px; font-size:14px}
+.rail .t{font-family:var(--f-display); font-weight:700; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:10px}
+.rail ol{list-style:none; padding:0; margin:0; display:grid; gap:2px; counter-reset:c}
+.rail a{display:flex; gap:10px; padding:6px 8px; border-radius:6px; color:var(--fg); text-decoration:none}
+.rail a:hover, .rail a:focus-visible{background:var(--sunk)}
+.rail a.on{background:var(--sunk); font-weight:700}
+.rail .n{font-family:var(--f-mono); color:var(--muted); min-width:1.4em}
+.legend{margin-top:24px; display:grid; gap:6px; font-size:13px}
+.legend span{display:flex; align-items:center; gap:8px}
+.sw{width:12px; height:12px; border-radius:3px; border:2px solid; flex:none}
+
+main{min-width:0; display:grid; gap:72px; padding-top:40px}
+section{display:grid; gap:20px; min-width:0}
+.eyebrow{font-family:var(--f-mono); font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.prose{max-width:70ch; display:grid; gap:14px}
+.lede{font-size:1.15rem; color:var(--fg)}
+
+/* hero */
+.hero{display:grid; gap:20px; padding-bottom:8px; border-bottom:1px solid var(--line)}
+.hero h1{font-size:clamp(2.2rem, 6vw, 3.8rem); font-weight:900; letter-spacing:-.02em}
+.hero h1 em{font-style:normal; color:var(--spire)}
+.idline{font-family:var(--f-mono); font-size:clamp(13px,2.2vw,17px); background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px 14px; overflow-x:auto; white-space:nowrap}
+.idline .s{color:var(--muted)} .idline .td{color:var(--spire); font-weight:500} .idline .p{color:var(--os); font-weight:500}
+.path{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:10px}
+.path a{display:grid; gap:2px; padding:10px 12px; background:var(--surface); border:1px solid var(--line); border-radius:8px; text-decoration:none; color:var(--fg); font-size:14px}
+.path a b{font-family:var(--f-mono); color:var(--muted); font-weight:500; font-size:12px}
+.path a:hover{border-color:var(--accent)}
+
+/* callouts */
+.dummy{background:var(--warn-bg); border:1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius:10px; padding:14px 16px; display:grid; gap:6px; max-width:70ch}
+.dummy .k{font-family:var(--f-mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--warn); font-weight:500}
+.status{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:12px}
+.st{border-radius:10px; padding:12px 14px; border:1px solid var(--line); background:var(--surface); display:grid; gap:4px; font-size:14.5px; min-width:0}
+.st .h{display:flex; align-items:center; gap:8px; font-weight:700; font-family:var(--f-display)}
+.pill{font-family:var(--f-mono); font-size:11.5px; padding:2px 8px; border-radius:99px; font-weight:500; letter-spacing:.03em; white-space:nowrap}
+.pill.ok{background:var(--os-bg); color:var(--ok)} .pill.bad{background:var(--bad-bg); color:var(--bad)} .pill.warn{background:var(--warn-bg); color:var(--warn)}
+.st.today{border-left:4px solid var(--bad)} .st.target{border-left:4px solid var(--ok)} .st.check{border-left:4px solid var(--warn)}
+
+/* tables */
+.tw{overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:14.5px}
+th,td{padding:9px 12px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line)}
+th{font-family:var(--f-display); font-weight:700; background:var(--sunk); font-size:13.5px}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:500}
+
+/* figures */
+figure{margin:0; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px; display:grid; gap:10px; min-width:0}
+figcaption{font-size:13.5px; color:var(--muted)}
+.svgbox{overflow-x:auto}
+.svgbox svg{display:block; width:100%; height:auto; min-width:640px}
+svg text{font-family:var(--f-text); fill:var(--fg)}
+svg .mono{font-family:var(--f-mono)}
+svg .mut{fill:var(--muted)}
+.b-spire{fill:var(--spire-bg); stroke:var(--spire)} .t-spire{fill:var(--spire)}
+.b-kc{fill:var(--kc-bg); stroke:var(--kc)} .t-kc{fill:var(--kc)}
+.b-os{fill:var(--os-bg); stroke:var(--os)} .t-os{fill:var(--os)}
+.b-gw{fill:var(--gw-bg); stroke:var(--gw)} .t-gw{fill:var(--gw)}
+.b-k8s{fill:var(--k8s-bg); stroke:var(--k8s)} .t-k8s{fill:var(--k8s)}
+.b-bad{fill:var(--bad-bg); stroke:var(--bad)}
+.frame{fill:none; stroke:var(--line); stroke-dasharray:6 5; stroke-width:1.5}
+.box{stroke-width:2}
+.ar{fill:none; stroke:var(--muted); stroke-width:1.8}
+.ar.spire{stroke:var(--spire)} .ar.kc{stroke:var(--kc)} .ar.os{stroke:var(--os)} .ar.gw{stroke:var(--gw)}
+.ar.dash{stroke-dasharray:6 5}
+
+/* analogy */
+.analogy{display:grid; grid-template-columns:repeat(auto-fit, minmax(210px,1fr)); gap:10px}
+.an{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:grid; gap:4px}
+.an .real{font-size:13px; color:var(--muted)}
+.an .tech{font-family:var(--f-display); font-weight:700; font-size:1.05rem}
+.an .ocp{font-family:var(--f-mono); font-size:12.5px; color:var(--muted); overflow-wrap:anywhere}
+
+/* stepper */
+.stepper{display:grid; gap:12px}
+.seq svg{min-width:720px}
+.seq .ll{stroke:var(--line); stroke-dasharray:4 4}
+.seq .msg line, .seq .msg path{stroke:var(--muted); stroke-width:1.6; fill:none; transition:opacity .2s, stroke .2s}
+.seq .msg text{font-size:12.5px; transition:opacity .2s}
+.seq .msg.future{opacity:.18}
+.seq .msg.cur line, .seq .msg.cur path{stroke:var(--accent); stroke-width:3}
+.seq .msg.cur text{font-weight:700; fill:var(--accent)}
+.seq .num{font-family:var(--f-mono); font-size:11px}
+.ctl{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+button{font:inherit; font-size:14px; padding:7px 14px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--fg); cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible, a:focus-visible, [tabindex]:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+button.pri{background:var(--accent); border-color:var(--accent); color:var(--surface)}
+button[aria-pressed="true"]{background:var(--sunk); border-color:var(--accent); font-weight:700}
+.count{font-family:var(--f-mono); font-size:13px; color:var(--muted); margin-left:auto}
+.caption{background:var(--sunk); border-radius:10px; padding:12px 14px; min-height:84px; display:grid; gap:4px; font-size:15px}
+.caption b{font-family:var(--f-display)}
+
+/* CR list */
+.crs{display:grid; gap:8px; counter-reset:cr}
+.cr{display:grid; grid-template-columns:auto minmax(0,1fr) minmax(0,1.3fr); gap:14px; align-items:start; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px}
+.cr .o{font-family:var(--f-mono); font-size:13px; color:var(--spire); font-weight:500; width:2em}
+.cr .k{font-family:var(--f-mono); font-weight:500; font-size:14px; overflow-wrap:anywhere}
+.cr .d{font-size:14px; color:var(--muted)}
+@media (max-width:640px){ .cr{grid-template-columns:auto minmax(0,1fr)} .cr .d{grid-column:2} }
+
+/* tabs */
+.tabs{display:flex; flex-wrap:wrap; gap:6px}
+
+/* jwt */
+.jwt{display:grid; gap:14px}
+.enc{font-family:var(--f-mono); font-size:13px; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px 14px; overflow-wrap:anywhere; line-height:1.5}
+.enc .h{color:var(--gw)} .enc .p{color:var(--spire)} .enc .s{color:var(--kc)}
+.jgrid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px}
+@media (max-width:760px){ .jgrid{grid-template-columns:minmax(0,1fr)} }
+.claims{background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.claims .sec{font-family:var(--f-mono); font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; padding:8px 14px; background:var(--sunk)}
+.claim{display:grid; grid-template-columns:64px minmax(0,1fr); gap:10px; padding:8px 14px; border-top:1px solid var(--line); cursor:pointer; font-family:var(--f-mono); font-size:13px; background:none; border-left:0; border-right:0; border-bottom:0; border-radius:0; width:100%; text-align:left; color:var(--fg)}
+.claim:hover{background:var(--sunk)}
+.claim[aria-pressed="true"]{background:var(--spire-bg); font-weight:400}
+.claim .kk{color:var(--muted)} .claim .vv{overflow-wrap:anywhere}
+.explain{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; display:grid; gap:8px; align-content:start}
+.explain .who{font-family:var(--f-mono); font-size:12px; color:var(--muted)}
+.ttl{display:flex; align-items:center; gap:12px; font-family:var(--f-mono); font-size:14px}
+.bar{flex:1; height:8px; background:var(--sunk); border-radius:99px; overflow:hidden}
+.bar i{display:block; height:100%; background:var(--spire); width:100%}
+
+/* truth table */
+.tt{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px}
+@media (max-width:760px){ .tt{grid-template-columns:minmax(0,1fr)} }
+.cel{font-family:var(--f-mono); font-size:13px; display:grid; gap:6px}
+.cel div{display:grid; grid-template-columns:22px minmax(0,1fr); gap:6px; padding:8px 10px; border-radius:8px; background:var(--sunk); overflow-wrap:anywhere}
+.cel .y{color:var(--ok); font-weight:700} .cel .n{color:var(--bad); font-weight:700}
+.verdict{font-family:var(--f-display); font-weight:900; font-size:2rem}
+.verdict.allow{color:var(--ok)} .verdict.deny{color:var(--bad)}
+.timeline{display:grid; gap:0; border-left:2px solid var(--line); margin-left:6px}
+.tl{position:relative; padding:4px 0 14px 20px; display:grid; gap:2px}
+.tl::before{content:""; position:absolute; left:-7px; top:9px; width:12px; height:12px; border-radius:50%; background:var(--surface); border:2px solid var(--kc)}
+.tl.here::before{background:var(--kc)}
+.tl .v{font-family:var(--f-mono); font-weight:500; color:var(--kc)}
+.cols2{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px}
+@media (max-width:760px){ .cols2{grid-template-columns:minmax(0,1fr)} }
+.foot{font-size:14px; color:var(--muted); border-top:1px solid var(--line); padding-top:20px; display:grid; gap:8px}
+.foot ul{margin:0; padding-left:18px; display:grid; gap:2px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<nav class="rail" aria-label="Chapters">
+  <div class="t">Field guide</div>
+  <ol id="toc">
+    <li><a href="#spiffe"><span class="n">1</span>SPIFFE &amp; SPIRE</a></li>
+    <li><a href="#ztwim"><span class="n">2</span>ZTWIM on OpenShift</a></li>
+    <li><a href="#sandbox"><span class="n">3</span>Sandbox → Keycloak</a></li>
+    <li><a href="#jwt"><span class="n">4</span>JWT-SVID</a></li>
+    <li><a href="#keycloak"><span class="n">5</span>Keycloak + SPIRE</a></li>
+    <li><a href="#gateway"><span class="n">6</span>MCP Gateway</a></li>
+    <li><a href="#lab"><span class="n">7</span>Our lab</a></li>
+  </ol>
+  <div class="legend" aria-label="Color legend">
+    <span><i class="sw" style="background:var(--spire-bg);border-color:var(--spire)"></i>SPIRE / identity</span>
+    <span><i class="sw" style="background:var(--os-bg);border-color:var(--os)"></i>OpenShell / agent</span>
+    <span><i class="sw" style="background:var(--kc-bg);border-color:var(--kc)"></i>Keycloak</span>
+    <span><i class="sw" style="background:var(--gw-bg);border-color:var(--gw)"></i>MCP Gateway</span>
+    <span><i class="sw" style="background:var(--k8s-bg);border-color:var(--k8s)"></i>OpenShift</span>
+  </div>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">AgentOps in Action · notes for myself · 2026-11-20</div>
+  <h1>Who is this <em>workload</em>, and who is it acting for?</h1>
+  <p class="lede prose">SPIFFE gives every pod a name it can prove without holding a secret. This guide goes from zero to how Hermie, sandboxed in OpenShell, could reach the MCP Gateway with a token that names both the operator and the agent.</p>
+  <div class="idline" aria-label="Example SPIFFE ID"><span class="s">spiffe://</span><span class="td">apps.cluster-xyz.example.com</span><span class="p">/ns/user1-hermes/sa/hermes-agent</span></div>
+  <div class="path">
+    <a href="#spiffe"><b>1</b>SPIFFE &amp; SPIRE alone</a>
+    <a href="#ztwim"><b>2</b>What ZTWIM runs</a>
+    <a href="#sandbox"><b>3</b>Sandbox → Gateway → Keycloak</a>
+    <a href="#jwt"><b>4</b>Inside a JWT-SVID</a>
+    <a href="#keycloak"><b>5</b>Keycloak ⇄ SPIRE ⇄ OpenShell</a>
+    <a href="#gateway"><b>6</b>MCP Gateway</a>
+  </div>
+</header>
+
+<!-- ============ 1 ============ -->
+<section id="spiffe">
+  <div class="eyebrow">Chapter 1 · the standard and the implementation</div>
+  <h2>SPIFFE and SPIRE, for dummies</h2>
+  <div class="prose">
+    <p>Today a pod proves who it is with a <b>secret</b>: a password, an API key, a client secret. Secrets get copied, leaked into git, and replayed from a laptop. Whoever holds the secret <i>is</i> the workload.</p>
+    <p>SPIFFE replaces <b>what you know</b> with <b>what you are</b>, proven by the platform you run on. <b>SPIFFE</b> is the spec (ID format, document formats, Workload API). <b>SPIRE</b> is the software that implements it. <b>ZTWIM</b> is Red Hat's operator that runs SPIRE on OpenShift.</p>
+  </div>
+  <div class="dummy"><span class="k">Think of it as</span><p>A passport office. You never fill a form with your own name. The consulate <i>looks at you</i> and prints the passport. You can't ask for somebody else's.</p></div>
+  <div class="analogy">
+    <div class="an"><span class="real">The country</span><span class="tech">Trust domain</span><span class="ocp">apps.cluster-xyz.example.com</span></div>
+    <div class="an"><span class="real">Passport office</span><span class="tech">SPIRE Server</span><span class="ocp">StatefulSet spire-server</span></div>
+    <div class="an"><span class="real">Consulate in every city</span><span class="tech">SPIRE Agent</span><span class="ocp">DaemonSet spire-agent</span></div>
+    <div class="an"><span class="real">The counter you queue at</span><span class="tech">Workload API socket</span><span class="ocp">/run/spire/sockets/spire-agent.sock</span></div>
+    <div class="an"><span class="real">Your name</span><span class="tech">SPIFFE ID</span><span class="ocp">spiffe://td/ns/x/sa/y</span></div>
+    <div class="an"><span class="real">The passport</span><span class="tech">SVID</span><span class="ocp">X.509 cert (1h) or JWT (5m)</span></div>
+    <div class="an"><span class="real">Stamps border guards trust</span><span class="tech">Trust bundle</span><span class="ocp">ConfigMap spire-bundle, JWKS</span></div>
+    <div class="an"><span class="real">Rules for who gets which passport</span><span class="tech">Registration entry</span><span class="ocp">ClusterSPIFFEID</span></div>
+  </div>
+
+  <figure>
+    <div class="svgbox">
+    <svg viewBox="0 0 960 430" role="img" aria-label="SPIRE architecture: server, OIDC provider, one agent per node, pods connecting to the Workload API socket">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+      <rect class="frame" x="6" y="6" width="948" height="418" rx="14"/>
+      <text x="22" y="30" class="t-spire mono" font-size="13">trust domain · spiffe://apps.cluster-xyz.example.com</text>
+      <rect class="box b-spire" x="360" y="48" width="240" height="78" rx="10"/>
+      <text x="480" y="80" text-anchor="middle" font-weight="700" font-size="17">SPIRE Server</text>
+      <text x="480" y="102" text-anchor="middle" class="mut" font-size="12.5">CA · signing keys · entries</text>
+      <rect class="box b-spire" x="660" y="48" width="270" height="78" rx="10"/>
+      <text x="795" y="80" text-anchor="middle" font-weight="700" font-size="15">Controller Manager</text>
+      <text x="795" y="102" text-anchor="middle" class="mut" font-size="12.5">ClusterSPIFFEID → entries</text>
+      <rect class="box b-spire" x="30" y="48" width="270" height="78" rx="10"/>
+      <text x="165" y="80" text-anchor="middle" font-weight="700" font-size="15">OIDC Discovery Provider</text>
+      <text x="165" y="102" text-anchor="middle" class="mut mono" font-size="11.5">/.well-known · /keys (JWKS)</text>
+      <path class="ar spire" d="M658 87H604" marker-end="url(#ah)" marker-start="url(#ah)"/>
+      <path class="ar spire" d="M358 87H304" marker-end="url(#ah)"/>
+      <text x="331" y="78" text-anchor="middle" class="t-spire" font-size="11">keys</text>
+      <g id="nodes"></g>
+    </svg>
+    </div>
+    <figcaption>One server per trust domain. One agent per node. Pods talk only to their local agent, through a socket the CSI driver mounts. Source: <code>diagrams/a-spire-big-picture.excalidraw</code></figcaption>
+  </figure>
+
+  <h3>The two kinds of SVID</h3>
+  <div class="tw"><table>
+    <tr><th></th><th>X.509-SVID</th><th>JWT-SVID</th></tr>
+    <tr><td>What</td><td>Short-lived TLS cert + private key</td><td>Short-lived signed JWT</td></tr>
+    <tr><td>SPIFFE ID lives in</td><td>URI SAN</td><td><code>sub</code> claim</td></tr>
+    <tr><td>Used for</td><td>mTLS between services</td><td>Bearer / OAuth client assertion over HTTP</td></tr>
+    <tr><td>ZTWIM default TTL</td><td><code>defaultX509Validity: 1h</code></td><td><code>defaultJWTValidity: 5m</code></td></tr>
+    <tr><td>Stolen copy useful?</td><td>No, needs the key</td><td>Yes until <code>exp</code>, and only for its <code>aud</code></td></tr>
+    <tr><td>Verified with</td><td>Trust bundle (CA certs)</td><td>JWKS from the OIDC Discovery Provider</td></tr>
+  </table></div>
+
+  <h3>Attestation, step by step</h3>
+  <div class="prose"><p>The workload sends <b>nothing</b> to prove itself. The agent asks the kernel who is on the socket and asks the kubelet what that pod is. Step through it:</p></div>
+  <div class="stepper" id="att"></div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="ztwim">
+  <div class="eyebrow">Chapter 2 · Red Hat's operator</div>
+  <h2>Zero Trust Workload Identity Manager</h2>
+  <div class="prose">
+    <p>ZTWIM is a supported operator that runs SPIRE for you. You don't run Helm. You create a handful of custom resources, all named <code>cluster</code>, and the operator reconciles everything in <code>zero-trust-workload-identity-manager</code>. Package <code>openshift-zero-trust-workload-identity-manager</code>, channel <code>stable-v1</code>.</p>
+  </div>
+  <div class="status">
+    <div class="st today"><div class="h">Our cluster <span class="pill bad">not installed</span></div><p>v1.1.3 is in the <code>redhat-operators</code> catalog. <code>oc get crd | grep -i spire</code> returns nothing (Robert, verified 2026-11-19).</p></div>
+    <div class="st target"><div class="h">Known to work <span class="pill ok">tested upstream</span></div><p>OpenShell token exchange tested on ROSA 4.21 with ZTWIM v1.1.0 (PR #1970 review, with small <code>ClusterSPIFFEID</code> tweaks).</p></div>
+  </div>
+  <h3>The resources, in the order the docs require</h3>
+  <div class="crs">
+    <div class="cr"><span class="o">1</span><span class="k">ZeroTrustWorkloadIdentityManager</span><span class="d">Sets <code>trustDomain</code> (immutable, use the apps domain), <code>clusterName</code>, <code>bundleConfigMap</code>.</span></div>
+    <div class="cr"><span class="o">2</span><span class="k">SpireServer</span><span class="d">StatefulSet with the server and the <b>Controller Manager</b> side by side, plus a PVC. <code>jwtIssuer</code>, <code>caValidity 24h</code>, X.509 1h, JWT 5m.</span></div>
+    <div class="cr"><span class="o">3</span><span class="k">SpireAgent</span><span class="d">DaemonSet. <code>k8sPSATEnabled</code> node attestation, <code>k8sEnabled</code> workload attestation.</span></div>
+    <div class="cr"><span class="o">4</span><span class="k">SpiffeCSIDriver</span><span class="d">DaemonSet that mounts the agent socket into pods via an inline <code>csi.spiffe.io</code> volume.</span></div>
+    <div class="cr"><span class="o">5</span><span class="k">SpireOIDCDiscoveryProvider</span><span class="d">Deployment + Route. Publishes the JWKS so Keycloak, Vault, Entra or Authorino can verify JWT-SVIDs.</span></div>
+    <div class="cr"><span class="o">+</span><span class="k">ClusterSPIFFEID</span><span class="d">Which pods get which SPIFFE ID. Robert calls it the <b>Agent Registry</b>.</span></div>
+    <div class="cr"><span class="o">+</span><span class="k">ClusterFederatedTrustDomain</span><span class="d">Trust another domain. Can't be turned off once enabled.</span></div>
+  </div>
+  <div class="dummy"><span class="k">Three values must line up</span>
+    <p><code>SpireAgent.socketPath</code> = <code>SpiffeCSIDriver.agentSocketPath</code> · <code>SpiffeCSIDriver.pluginName</code> = <code>SpireOIDCDiscoveryProvider.csiDriverName</code> = the pod's <code>driver:</code> · <code>SpireServer.jwtIssuer</code> = <code>SpireOIDCDiscoveryProvider.jwtIssuer</code>, which becomes the <code>iss</code> every verifier trusts.</p></div>
+
+  <figure>
+    <div class="tabs" role="tablist" id="ytabs"></div>
+    <pre><code id="ycode"></code></pre>
+    <figcaption>Copied from OCP 4.19 Security and compliance, chapter 10, except <code>ClusterSPIFFEID</code>, which uses the upstream Controller Manager CRD shape.</figcaption>
+  </figure>
+
+  <h3>The OIDC bridge, same pattern every time</h3>
+  <div class="prose"><p>The docs show it with Vault (<code>vault write auth/jwt/config oidc_discovery_url=…</code>, role bound to <code>sub: spiffe://…/ns/demo/sa/client</code>) and with Azure Entra (audience <code>api://AzureADTokenExchange</code>). Keycloak is just one more relying party: <b>SPIRE issues → OIDC provider publishes keys → relying party trusts the issuer → SVID is exchanged for a local token.</b></p></div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="sandbox">
+  <div class="eyebrow">Chapter 3 · OpenShell dynamic token grants</div>
+  <h2>How a sandbox gets an SVID and trades it</h2>
+  <div class="prose">
+    <p>Module 2 already teaches the core trick. With <code>--provider maas</code>, OpenShell gives the agent an opaque placeholder and swaps in the real key at the egress proxy. Token grants go further: the supervisor <b>mints</b> the real token on demand from the sandbox's SPIFFE identity, so nothing is stored at all.</p>
+  </div>
+  <div class="status">
+    <div class="st target"><div class="h">Upstream <span class="pill ok">v0.0.113+</span></div><p><code>token_exchange</code> landed in PR #1970 (merged 2026-08-24). The shared-supervisor SPIRE Broker API (PR #4732) is merged but not released yet.</p></div>
+    <div class="st today"><div class="h">Our lab <span class="pill bad">chart 0.0.92</span></div><p><code>tenant-openshell/values.yaml:8,61</code>: chart 0.0.92 + <code>openshell-cli:0.1</code>. Provider profiles are static-credential only, with no <code>token_grant</code>.</p></div>
+  </div>
+  <div class="ctl" role="group" aria-label="Grant type">
+    <button id="g-tx" aria-pressed="true">token_exchange (user + agent)</button>
+    <button id="g-cc" aria-pressed="false">client_credentials (agent only)</button>
+  </div>
+  <div class="stepper" id="grant"></div>
+  <figure>
+    <pre><code>credentials:
+  - name: user_oidc_token          # gateway-only, never reaches the sandbox
+  - name: api_token
+    auth_style: bearer
+    token_grant:
+      grant_type: token_exchange
+      token_endpoint: https://&lt;kc&gt;/realms/waterplant-user1/protocol/openid-connect/token
+      audience: mcp-gateway
+      jwt_svid_audience: https://&lt;kc&gt;/realms/waterplant-user1
+      client_assertion_type: urn:ietf:params:oauth:client-assertion-type:jwt-spiffe
+      subject_token:
+        source: provider_credential
+        credential: user_oidc_token</code></pre>
+    <figcaption>Provider profile shape from the OpenShell providers-v2 docs, with our realm swapped in. The user token gets onto the gateway with <code>openshell provider create --from-oidc-token</code>.</figcaption>
+  </figure>
+  <div class="tw"><table>
+    <tr><th>Who</th><th>Proves</th><th>With</th></tr>
+    <tr><td>User</td><td>a real login happened</td><td>OIDC token stored on the gateway</td></tr>
+    <tr><td>OpenShell Gateway</td><td>it's the real gateway, so only it can turn a user token into an intermediate one</td><td>its own JWT-SVID</td></tr>
+    <tr><td>Sandbox supervisor</td><td>it's the sandbox the intermediate token was minted for</td><td>its JWT-SVID (intermediate <code>aud</code> = its SPIFFE ID)</td></tr>
+    <tr><td>Agent</td><td>nothing, and it can't steal anything</td><td>an opaque placeholder</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="jwt">
+  <div class="eyebrow">Chapter 4 · the document itself</div>
+  <h2>What's inside a JWT-SVID</h2>
+  <div class="prose"><p>A normal JWT signed by the SPIRE Server, where <b><code>sub</code> is the SPIFFE ID</b>. Click a claim to see who sets it and why it matters. The countdown is the real 5-minute ZTWIM default.</p></div>
+  <div class="jwt">
+    <div class="enc" id="enc" aria-label="Encoded token"></div>
+    <div class="ttl"><span>expires in</span><div class="bar"><i id="ttlbar"></i></div><span id="ttltxt">5:00</span><button id="renew">Fetch a new one</button></div>
+    <div class="jgrid">
+      <div class="claims" id="claims"></div>
+      <div class="explain" id="explain" aria-live="polite"></div>
+    </div>
+  </div>
+  <div class="dummy"><span class="k">Not inside</span><p>Roles, scopes, username, <code>azp</code>, <code>jti</code>. A JWT-SVID says <b>which software</b> this is. What it may do, and for whom, comes from Keycloak and Authorino.</p></div>
+  <h3>Compared with the token Hermie sends today</h3>
+  <div class="tw"><table>
+    <tr><th></th><th>Today (decoded from <code>gateway.json</code>)</th><th>JWT-SVID</th></tr>
+    <tr><td>Issuer</td><td>Keycloak realm <code>waterplant-&lt;user&gt;</code></td><td>SPIRE <code>oidc-discovery.&lt;apps&gt;</code></td></tr>
+    <tr><td><code>sub</code></td><td><b>absent</b></td><td>SPIFFE ID of the pod</td></tr>
+    <tr><td><code>aud</code></td><td><b>absent</b></td><td>the audience requested</td></tr>
+    <tr><td><code>azp</code></td><td><code>mcp-gateway</code>, the shared public client</td><td>not present</td></tr>
+    <tr><td>Permissions</td><td>18 <code>tool:*</code> roles across 3 clients</td><td>none</td></tr>
+    <tr><td>Obtained by</td><td>password grant as <code>operator</code>, password in env vars</td><td>attestation, no secret</td></tr>
+    <tr><td>Lifetime</td><td>1800 s</td><td>300 s</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="keycloak">
+  <div class="eyebrow">Chapter 5 · two roots of trust</div>
+  <h2>Keycloak, OpenShell and SPIRE: who trusts whom</h2>
+  <div class="prose"><p>SPIRE signs <b>workload</b> identity. Keycloak signs <b>user</b> identity and permissions. Keycloak bridges the two: it accepts a SPIRE-signed SVID as the client's proof and mints its own token naming both. Authorino only ever has to trust Keycloak.</p></div>
+  <figure>
+    <div class="svgbox">
+    <svg viewBox="0 0 960 420" role="img" aria-label="Trust map: who verifies whom">
+      <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+      <g font-size="14">
+      <rect class="box b-spire" x="360" y="14" width="240" height="64" rx="10"/><text x="480" y="42" text-anchor="middle" font-weight="700">SPIRE Server</text><text x="480" y="62" text-anchor="middle" class="mut" font-size="12">root of workload trust</text>
+      <rect class="box b-k8s" x="700" y="14" width="230" height="64" rx="10"/><text x="815" y="42" text-anchor="middle" font-weight="700">Kubernetes API</text><text x="815" y="62" text-anchor="middle" class="mut" font-size="12">TokenReview</text>
+      <rect class="box b-spire" x="30" y="150" width="230" height="64" rx="10"/><text x="145" y="178" text-anchor="middle" font-weight="700">SPIRE Agent</text><text x="145" y="198" text-anchor="middle" class="mut" font-size="12">one per node</text>
+      <rect class="box b-spire" x="360" y="150" width="240" height="64" rx="10"/><text x="480" y="178" text-anchor="middle" font-weight="700">OIDC Discovery</text><text x="480" y="198" text-anchor="middle" class="mut mono" font-size="11.5">JWKS</text>
+      <rect class="box b-os" x="30" y="300" width="230" height="74" rx="10"/><text x="145" y="330" text-anchor="middle" font-weight="700">OpenShell</text><text x="145" y="350" text-anchor="middle" class="mut" font-size="12">supervisor + gateway</text>
+      <rect class="box b-kc" x="360" y="300" width="240" height="74" rx="10"/><text x="480" y="330" text-anchor="middle" font-weight="700">Keycloak realm</text><text x="480" y="350" text-anchor="middle" class="mut mono" font-size="11.5">spiffe IdP · federated-jwt</text>
+      <rect class="box b-gw" x="700" y="300" width="230" height="74" rx="10"/><text x="815" y="330" text-anchor="middle" font-weight="700">MCP Gateway</text><text x="815" y="350" text-anchor="middle" class="mut" font-size="12">Authorino</text>
+      </g>
+      <g font-size="12">
+      <path class="ar k8s" d="M602 46H698" marker-end="url(#ah2)"/><text x="650" y="38" text-anchor="middle" class="mut">checks PSAT</text>
+      <path class="ar spire" d="M360 70L230 148" marker-end="url(#ah2)"/><text x="250" y="100" class="t-spire">agent SVID</text>
+      <path class="ar spire" d="M480 80V148" marker-end="url(#ah2)"/><text x="488" y="118" class="t-spire">JWT keys</text>
+      <path class="ar spire" d="M145 216V298" marker-end="url(#ah2)"/><text x="153" y="262" class="t-spire">workload SVIDs</text>
+      <path class="ar kc" d="M262 330H358" marker-end="url(#ah2)"/><text x="310" y="322" text-anchor="middle" class="t-kc">SVID as</text><text x="310" y="350" text-anchor="middle" class="t-kc">client auth</text>
+      <path class="ar spire dash" d="M480 298V216" marker-end="url(#ah2)"/><text x="488" y="262" class="t-spire">fetch JWKS, verify SVID</text>
+      <path class="ar kc" d="M602 337H698" marker-end="url(#ah2)"/><text x="650" y="329" text-anchor="middle" class="t-kc">realm JWKS</text>
+      <path class="ar gw" d="M145 376C145 410 815 410 815 376" marker-end="url(#ah2)"/><text x="480" y="414" text-anchor="middle" class="t-gw">Bearer = Keycloak token, not the SVID</text>
+      <path class="ar spire dash" d="M602 200L740 298" marker-end="url(#ah2)"/><text x="640" y="232" class="t-spire">option 2: verify SVID directly</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>Solid = the recommended path. Dashed = verification lookups and the fallback where Authorino checks the JWT-SVID itself. Source: <code>diagrams/f-trust-map.excalidraw</code></figcaption>
+  </figure>
+
+  <div class="cols2">
+    <div class="prose">
+      <h3>Keycloak's SPIFFE support, for real</h3>
+      <p>Issue #41907 was closed as a duplicate of epic #42634, <i>Federated client authentication</i>. There is no special SPIFFE authenticator. Instead:</p>
+      <p><b>Identity provider</b> type <code>spiffe</code>, with <code>trustDomain</code> and <code>bundleEndpoint</code> (a SPIFFE bundle or the OIDC JWKS URL from ZTWIM).<br><b>Client authenticator</b> <code>federated-jwt</code> ("Signed JWT - Federated"), with <code>jwt.credential.issuer</code> = IdP alias and <code>jwt.credential.sub</code> = the SPIFFE ID.<br><b>Assertion type</b> <code>urn:ietf:params:oauth:client-assertion-type:jwt-spiffe</code>, with <code>aud</code> = the realm issuer URL.</p>
+    </div>
+    <div class="timeline" aria-label="Keycloak versions">
+      <div class="tl here"><span class="v">26.4.0</span><span>SPIFFE IdP + <code>federated-jwt</code>, both preview. <b>Our RHBK 26.4.18 is here.</b> Client id probably has to equal the SPIFFE ID.</span></div>
+      <div class="tl"><span class="v">26.5</span><span><code>--feature-spiffe=enabled</code>. <code>issuer</code> renamed to <code>trustDomain</code>. Client id no longer has to match <code>sub</code>.</span></div>
+      <div class="tl"><span class="v">26.6.0</span><span>Federated client auth and Kubernetes SA tokens supported. SPIFFE stays preview because the IETF draft isn't final.</span></div>
+      <div class="tl"><span class="v">26.8.2</span><span>Latest. Still preview. #46977 targets "supported" in 27.0. X.509-SVID auth (#49833) still open.</span></div>
+    </div>
+  </div>
+  <pre><code>POST /realms/waterplant-user1/protocol/openid-connect/token
+grant_type=client_credentials        # or urn:ietf:params:oauth:grant-type:token-exchange
+client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-spiffe
+client_assertion=&lt;JWT-SVID, aud=https://&lt;kc&gt;/realms/waterplant-user1&gt;</code></pre>
+  <div class="status">
+    <div class="st check"><div class="h">Verify first <span class="pill warn">open</span></div><p>ZTWIM sets <code>iss</code> = <code>https://oidc-discovery…</code>. Keycloak's rule is that <code>iss</code> must match the IdP, or be missing when <code>sub</code> is a <code>spiffe://</code> URI. Test how that behaves on 26.4 (old <code>issuer</code> key) vs 26.6+ (<code>trustDomain</code>).</p></div>
+    <div class="st today"><div class="h">Blocker <span class="pill bad">not ours</span></div><p>The Keycloak is RHDP-provisioned and shared by every realm. Turning on a preview feature means a server restart nobody in the lab owns. Ask RHDP, run a lab-owned Keycloak for the spike, or use the Authorino fallback.</p></div>
+    <div class="st check"><div class="h">Open question <span class="pill warn">design</span></div><p>Keycloak wants one unique SPIFFE ID per client. OpenShell sandbox IDs end in a UUID per sandbox. How do you register clients for sandboxes that come and go?</p></div>
+  </div>
+  <h3>What people used before native support</h3>
+  <div class="tw"><table>
+    <tr><th>Approach</th><th>How</th><th>Catch</th></tr>
+    <tr><td><code>private_key_jwt</code> + JWKS URL</td><td>"Signed JWT", <code>jwks.url</code> → SPIRE <code>/keys</code>, assertion type jwt-bearer</td><td>RFC 7523 wants <code>iss == sub == client_id</code>. The SVID's <code>iss</code> is a URL. Keycloak also tracks <code>jti</code>, and SVIDs have none</td></tr>
+    <tr><td>Posta's SPI</td><td><code>client-spiffe-jwt</code> on Keycloak 26.2.5. The issued token has <code>azp</code> = the SPIFFE ID</td><td>Custom jar, now replaced by native <code>federated-jwt</code></td></tr>
+    <tr><td>mTLS <code>tls_client_auth</code></td><td>X.509-SVID, exactly one URI SAN, CA=FALSE</td><td>TLS must reach Keycloak end to end, and the RHDP ingress isn't ours</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="gateway">
+  <div class="eyebrow">Chapter 6 · the enforcement point</div>
+  <h2>MCP Gateway: one more predicate</h2>
+  <div class="prose">
+    <p>The MCP Gateway doesn't speak SPIFFE, and it doesn't need to. It's Envoy with a Kuadrant <code>AuthPolicy</code>, and Authorino validates JWTs from an OIDC issuer. Each tool call crosses two listeners (<code>tenant-policy/templates/mcp-gateway-policy.yaml</code>):</p>
+  </div>
+  <figure>
+    <div class="svgbox">
+    <svg viewBox="0 0 960 200" role="img" aria-label="Agent to mcp listener to mcps listener to MCP server">
+      <defs><marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+      <g font-size="14">
+      <rect class="box b-os" x="10" y="40" width="150" height="70" rx="10"/><text x="85" y="80" text-anchor="middle" font-weight="700">Agent</text>
+      <rect class="box b-gw" x="230" y="30" width="260" height="90" rx="10"/><text x="360" y="58" text-anchor="middle" font-weight="700">listener mcp</text><text x="360" y="80" text-anchor="middle" class="mut mono" font-size="11.5">mcp-auth-policy · line 55</text><text x="360" y="100" text-anchor="middle" font-size="12.5">valid JWT from my realm?</text>
+      <rect class="box b-gw" x="560" y="30" width="250" height="90" rx="10"/><text x="685" y="58" text-anchor="middle" font-weight="700">listener mcps</text><text x="685" y="80" text-anchor="middle" class="mut mono" font-size="11.5">mcp-authz-policy · line 104</text><text x="685" y="100" text-anchor="middle" font-size="12.5">tool:X in roles? (+ azp)</text>
+      <rect class="box b-k8s" x="860" y="40" width="90" height="70" rx="10"/><text x="905" y="72" text-anchor="middle" font-weight="700" font-size="13">MCP</text><text x="905" y="90" text-anchor="middle" font-size="13">server</text>
+      </g>
+      <path class="ar gw" d="M162 75H228" marker-end="url(#ah3)"/><text x="195" y="67" text-anchor="middle" font-size="11" class="t-gw">Bearer</text>
+      <path class="ar gw" d="M492 75H558" marker-end="url(#ah3)"/><text x="525" y="67" text-anchor="middle" font-size="11" class="t-gw">broker</text>
+      <path class="ar" d="M812 75H858" marker-end="url(#ah3)"/>
+      <text x="685" y="150" text-anchor="middle" font-size="12" class="mut">broker sets x-mcp-servername / x-mcp-toolname</text>
+      <text x="480" y="185" text-anchor="middle" font-size="13">Authorino authentication rules are <tspan font-weight="700">OR</tspan>, so "token AND SVID" can't live in one rule. Bind both into one token.</text>
+    </svg>
+    </div>
+  </figure>
+  <div class="prose"><p>Try the intersection rule. Pick a token and a role assignment:</p></div>
+  <div class="tt">
+    <div class="stepper">
+      <div class="ctl" role="group" aria-label="Token"><button id="tk-op" aria-pressed="true">operator token (today)</button><button id="tk-ex" aria-pressed="false">exchanged token</button></div>
+      <div class="ctl" role="group" aria-label="Role"><button id="rl-y" aria-pressed="true">operator holds tool:stop_pump</button><button id="rl-n" aria-pressed="false">role withheld</button></div>
+      <pre><code id="tokview"></code></pre>
+    </div>
+    <div class="explain">
+      <div class="who">patternMatching (predicates are AND-ed)</div>
+      <div class="cel" id="cel"></div>
+      <div class="verdict" id="verdict">403</div>
+      <p id="vwhy" class="mut"></p>
+    </div>
+  </div>
+  <div class="cols2">
+    <div class="prose"><h3>Option 1 · indirect (recommended)</h3><p>SPIFFE authenticates the agent <b>to Keycloak</b>. The exchanged token carries <code>sub=operator</code> and <code>azp=agent</code>. Authorino keeps trusting only the realm and adds <code>has(auth.identity.azp) &amp;&amp; auth.identity.azp == 'hermes-agent'</code>. With OpenShell, <code>azp</code> is the sandbox SPIFFE ID, so match a prefix instead.</p></div>
+    <div class="prose"><h3>Option 2 · direct (fallback)</h3><p>The <code>mcp</code> listener validates a JWT-SVID from <code>customHeader: x-agent-svid</code> with <code>issuerUrl</code> = the SPIRE OIDC provider. The <code>mcps</code> listener keeps validating the operator token. That's two independent roots and no Keycloak change at all. The catch: the two facts are never bound into one artifact.</p></div>
+  </div>
+  <div class="dummy"><span class="k">Attribution, not just authorization</span><p>The <code>jti</code> already in the token becomes the join key across the Authorino decision log, the plant-api audit row, <code>raised_by_verified</code> (kept beside the model-written <code>raised_by</code> on purpose) and the MLflow trace tags. Model the actor as an ordered list from day one, so moving to RFC 8693 <code>act</code> later is cheap.</p></div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="lab">
+  <div class="eyebrow">Chapter 7 · from the repo (main, pulled 2026-11-20) and Robert's notes</div>
+  <h2>Our lab: today vs target</h2>
+  <div class="cols2">
+    <div class="status" style="grid-template-columns:minmax(0,1fr)">
+      <div class="st today"><div class="h">Token source</div><p><code>mcp-token-refresh.py</code> runs <code>grant_type=password</code> as realm user <code>operator</code> through the public <code>mcp-gateway</code> client (<code>tenant-platform/files/mcp-token-refresh.py:55-63</code>).</p></div>
+      <div class="st today"><div class="h">Credentials</div><p><code>MCP_USERNAME</code> / <code>MCP_PASSWORD</code> env on the bridge and the agents (<code>tenant-openshell/templates/bridge.yaml:487-489</code>, <code>agent-hermes-plain.yaml:377-379</code>).</p></div>
+      <div class="st today"><div class="h">Token</div><p><code>azp=mcp-gateway</code>, no <code>sub</code>, no <code>aud</code>, 18 tool roles, written to a file the agent reads.</p></div>
+      <div class="st today"><div class="h">Policy</div><p>Asks "does the operator hold tool:X?". There is no agent in the question.</p></div>
+    </div>
+    <div class="status" style="grid-template-columns:minmax(0,1fr)">
+      <div class="st target"><div class="h">Install ZTWIM</div><p>Pinned <code>startingCSV</code>, <code>installPlanApproval: Manual</code>, as the repo's <code>operators.yaml</code> does. A <code>ClusterSPIFFEID</code> per tenant.</p></div>
+      <div class="st target"><div class="h">Path A first: hermes-plain</div><p>Broker sidecar with a <code>csi.spiffe.io</code> volume. Password grant, then RFC 8693 exchange with SVID client auth. Needs no OpenShell upgrade.</p></div>
+      <div class="st target"><div class="h">Enforce the intersection</div><p>One CEL predicate on <code>azp</code>, shadowed behind a per-tenant flag. Fail closed.</p></div>
+      <div class="st check"><div class="h">Path B: the sandbox</div><p>Native <code>token_grant</code> needs OpenShell ≥ v0.0.113, Keycloak SPIFFE preview enabled, and the per-sandbox client question answered.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <b>Sources</b> (local copies in <code>sources/</code>, tracked in <code>sources/INDEX.md</code>; diagrams in <code>diagrams/*.excalidraw</code>; long-form notes in <code>notes/</code>)
+  <ul>
+    <li><a href="https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/security_and_compliance/zero-trust-workload-identity-manager" target="_blank" rel="noopener">OCP 4.19 · Zero Trust Workload Identity Manager</a> (chapter 10 of the local PDF)</li>
+    <li><a href="https://github.com/keycloak/keycloak/issues/41907" target="_blank" rel="noopener">Keycloak #41907</a> → epic #42634, follow-up #46977</li>
+    <li><a href="https://github.com/NVIDIA/OpenShell/pull/1970" target="_blank" rel="noopener">OpenShell PR #1970</a> · <a href="https://docs.nvidia.com/openshell/v0.0.116/sandboxes/providers-v2#dynamic-token-grants" target="_blank" rel="noopener">dynamic token grants</a> · <a href="https://docs.nvidia.com/openshell/dev/how-it-works/gateways/configuration#sandbox-identity-through-the-spiffe-broker-api" target="_blank" rel="noopener">SPIFFE broker config</a></li>
+    <li><a href="https://skycloak.io/blog/workload-identity-federation-spiffe-jwt-svid-keycloak/" target="_blank" rel="noopener">Skycloak · JWT-SVID and Keycloak</a> · <a href="https://blog.christianposta.com/authenticating-mcp-oauth-clients-with-spiffe/" target="_blank" rel="noopener">Christian Posta · MCP OAuth clients with SPIFFE</a></li>
+    <li><a href="https://github.com/rhpds/agentops-in-action-workshop/blob/spiffe-spire/docs/agent-identity/design-note.md" target="_blank" rel="noopener">Robert's agent identity design note</a> (spiffe-spire branch)</li>
+    <li><a href="https://docs.kuadrant.io/1.4.x/kuadrant-operator/examples/otel/" target="_blank" rel="noopener">Kuadrant OpenTelemetry</a></li>
+  </ul>
+</footer>
+</main>
+</div>
+
+<script>
+(function(){
+const $ = (s, r=document) => r.querySelector(s);
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs={}, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; };
+
+/* ---- nodes in the big picture ---- */
+const g = $("#nodes");
+[30, 340, 650].forEach((x, i) => {
+  g.append(el("rect", {class:"frame", x, y:160, width:280, height:250, rx:12}));
+  g.append(el("text", {x:x+14, y:182, class:"mut", "font-size":13}, `node ${i+1}`));
+  g.append(el("rect", {class:"box b-spire", x:x+40, y:196, width:200, height:52, rx:10}));
+  g.append(el("text", {x:x+140, y:228, "text-anchor":"middle", "font-weight":700, "font-size":15}, "SPIRE Agent"));
+  g.append(el("path", {class:"ar spire dash", d:`M${x+140} 194L480 128`, "marker-end":"url(#ah)"}));
+  g.append(el("rect", {class:"box b-k8s", x:x+40, y:268, width:200, height:34, rx:8}));
+  g.append(el("text", {x:x+140, y:290, "text-anchor":"middle", "font-size":12, class:"mono"}, "Workload API socket"));
+  g.append(el("path", {class:"ar", d:`M${x+140} 268V250`, "marker-end":"url(#ah)"}));
+  [["pod A","sa: hermes","os",x+20],["pod B","sa: other","k8s",x+150]].forEach(([n,s,k,px])=>{
+    g.append(el("rect", {class:`box b-${k}`, x:px, y:330, width:110, height:62, rx:10}));
+    g.append(el("text", {x:px+55, y:356, "text-anchor":"middle", "font-weight":700, "font-size":14}, n));
+    g.append(el("text", {x:px+55, y:376, "text-anchor":"middle", class:"mut mono", "font-size":11}, s));
+    g.append(el("path", {class:`ar ${k==="os"?"os":""}`, d:`M${px+55} 328L${x+140} 304`, "marker-end":"url(#ah)"}));
+  });
+});
+g.append(el("text", {x:520, y:150, class:"t-spire", "font-size":11}, "node attestation (k8s PSAT)"));
+
+/* ---- generic sequence stepper ---- */
+function stepper(host, model){
+  host.innerHTML = "";
+  const fig = document.createElement("figure"); fig.className = "seq";
+  const box = document.createElement("div"); box.className = "svgbox";
+  const P = model.parts, colW = 168, top = 64, rowH = 46;
+  const W = P.length * colW, H = top + model.steps.length * rowH + 20;
+  const svg = el("svg", {viewBox:`0 0 ${W} ${H}`, role:"img", "aria-label":model.label});
+  const defs = el("defs"); const m = el("marker", {id:model.id+"m", viewBox:"0 0 10 10", refX:9, refY:5, markerWidth:9, markerHeight:9, markerUnits:"userSpaceOnUse", orient:"auto-start-reverse"});
+  m.append(el("path", {d:"M0 0L10 5L0 10z", fill:"context-stroke"})); defs.append(m); svg.append(defs);
+  const X = {};
+  P.forEach((p, i) => {
+    const cx = i * colW + colW/2; X[p.id] = cx;
+    svg.append(el("line", {class:"ll", x1:cx, y1:top-10, x2:cx, y2:H-8}));
+    svg.append(el("rect", {class:`box b-${p.kind}`, x:cx-74, y:6, width:148, height:44, rx:9}));
+    const lines = p.label.split("\n");
+    lines.forEach((l, j) => svg.append(el("text", {x:cx, y:6 + 22 - (lines.length-1)*8 + j*16 + 5, "text-anchor":"middle", "font-weight":700, "font-size":13}, l)));
+  });
+  const rows = model.steps.map((s, i) => {
+    const y = top + i * rowH + 22, grp = el("g", {class:"msg future"});
+    const x1 = X[s.from], x2 = X[s.to];
+    if (s.from === s.to) {
+      grp.append(el("path", {d:`M${x1} ${y-8}h36v16h-34`, "marker-end":`url(#${model.id}m)`}));
+      grp.append(el("text", {x:x1+44, y:y+4}, s.label));
+    } else {
+      grp.append(el("line", {x1, y1:y, x2: x2 + (x2 > x1 ? -4 : 4), y2:y, "marker-end":`url(#${model.id}m)`}));
+      const tx = Math.min(x1, x2) + 8;
+      grp.append(el("text", {x:tx, y:y-7}, s.label));
+    }
+    grp.append(el("text", {x: Math.min(x1,x2) - 18, y:y+4, class:"num mut"}, String(i+1)));
+    svg.append(grp); return grp;
+  });
+  box.append(svg); fig.append(box);
+  const ctl = document.createElement("div"); ctl.className = "ctl";
+  ctl.innerHTML = `<button data-a="prev">← Back</button><button class="pri" data-a="next">Next step →</button><button data-a="all">Show all</button><span class="count"></span>`;
+  const cap = document.createElement("div"); cap.className = "caption"; cap.setAttribute("aria-live","polite");
+  fig.append(ctl, cap); host.append(fig);
+  let cur = -1;
+  function render(){
+    rows.forEach((r, i) => { r.setAttribute("class", "msg " + (cur === -2 ? "" : i < cur ? "" : i === cur ? "cur" : "future")); });
+    const count = ctl.querySelector(".count");
+    if (cur === -1) { cap.innerHTML = `<b>${model.intro[0]}</b><span>${model.intro[1]}</span>`; count.textContent = `0 / ${rows.length}`; }
+    else if (cur === -2) { cap.innerHTML = `<b>All steps</b><span>${model.outro}</span>`; count.textContent = `${rows.length} / ${rows.length}`; }
+    else { const s = model.steps[cur]; cap.innerHTML = `<b>${cur+1}. ${s.title || s.label}</b><span>${s.note}</span>`; count.textContent = `${cur+1} / ${rows.length}`; }
+  }
+  ctl.addEventListener("click", e => {
+    const a = e.target.closest("button")?.dataset.a; if (!a) return;
+    if (a === "next") cur = cur === -2 ? 0 : Math.min(cur + 1, rows.length - 1);
+    if (a === "prev") cur = cur === -2 ? rows.length - 1 : Math.max(cur - 1, -1);
+    if (a === "all") cur = -2;
+    render();
+  });
+  render();
+}
+
+stepper($("#att"), {
+  id:"att", label:"SPIRE attestation sequence",
+  parts:[{id:"w",label:"Workload\n(pod)",kind:"os"},{id:"a",label:"SPIRE Agent",kind:"spire"},{id:"k",label:"kernel /\nkubelet",kind:"k8s"},{id:"s",label:"SPIRE Server",kind:"spire"},{id:"t",label:"K8s API",kind:"k8s"}],
+  intro:["Two attestations, both must pass","First the node proves itself, once. Then every workload request is checked from the outside. Press Next."],
+  outro:"Node attestation (1-4) happens once per node. Workload attestation (5-9) happens on every request, and the SVID auto-rotates before it expires.",
+  steps:[
+    {from:"a",to:"s",label:"here is my projected SA token",title:"Agent presents a PSAT",note:"The agent's pod has a Kubernetes-signed projected service account token. That is its proof it runs on a real node of this cluster (<code>k8sPSATEnabled</code>)."},
+    {from:"s",to:"t",label:"is this token real?",title:"Server asks Kubernetes",note:"The SPIRE Server doesn't trust the agent's word. It calls the TokenReview API."},
+    {from:"t",to:"s",label:"yes: node X, sa spire-agent",title:"Kubernetes confirms",note:"Kubernetes returns the node, namespace and service account behind the token."},
+    {from:"s",to:"a",label:"agent SVID + bundle + entries",title:"Agent is trusted",note:"The agent gets its own SVID, the trust bundle, and the registration entries it's allowed to serve (synced from <code>ClusterSPIFFEID</code>)."},
+    {from:"w",to:"a",label:"FetchJWTSVID(aud=keycloak)",title:"Workload asks on the socket",note:"The app calls the Workload API on the CSI-mounted socket. No token, no password, no headers. Just the audience it wants."},
+    {from:"a",to:"k",label:"who is PID 4242?",title:"Agent asks the kernel",note:"The Unix socket tells the agent the caller's PID (SO_PEERCRED). The container can't lie about this."},
+    {from:"k",to:"a",label:"ns user1-hermes, sa hermes-agent",title:"Kubelet describes the pod",note:"The agent maps PID → container → pod via the kubelet: namespace, service account, labels, image. These become the selectors."},
+    {from:"a",to:"a",label:"match selectors vs entries",title:"Selectors matched",note:"Only if the selectors match a registration entry does the agent issue that SPIFFE ID. Another pod in the same namespace with a different SA gets nothing."},
+    {from:"a",to:"w",label:"JWT-SVID sub=spiffe://…/sa/hermes-agent",title:"SVID delivered",note:"Signed by the server's key, valid 5 minutes, for one audience. The workload now presents it to Keycloak, Vault or another service."}
+  ]
+});
+
+const GRANTS = {
+  tx:{
+    id:"gtx", label:"OpenShell token exchange sequence",
+    parts:[{id:"ag",label:"Agent",kind:"os"},{id:"sv",label:"Supervisor\n+ egress proxy",kind:"os"},{id:"sp",label:"SPIRE Agent",kind:"spire"},{id:"gw",label:"OpenShell\nGateway",kind:"os"},{id:"kc",label:"Keycloak",kind:"kc"},{id:"mcp",label:"MCP Gateway",kind:"gw"}],
+    intro:["token_exchange: the agent acts for a user","Step 0 happened earlier: the human ran <code>openshell provider create --from-oidc-token</code>, so their access token sits on the gateway as <code>user_oidc_token</code>. The sandbox never gets it."],
+    outro:"Final token: <code>sub</code> = the user, <code>azp</code> = <code>spiffe://…/sandbox/&lt;uuid&gt;</code>. The agent sent plain HTTP and held nothing. The supervisor caches the token for <code>expires_in</code> minus 30 s, capped at 1 h.",
+    steps:[
+      {from:"ag",to:"sv",label:"POST /mcp tools/call (no auth)",title:"Agent sends plain HTTP",note:"Hermie calls the MCP Gateway endpoint. The supervisor's proxy matches it against the provider profile endpoints."},
+      {from:"sv",to:"sp",label:"FetchJWTSVID",title:"Supervisor gets its SVID",note:"From the Workload API socket (<code>OPENSHELL_PROVIDER_SPIFFE_WORKLOAD_API_SOCKET</code>, default <code>/spiffe-workload-api/spire-agent.sock</code>)."},
+      {from:"sv",to:"gw",label:"intermediate token please + SVID",title:"Ask the gateway",note:"gRPC <code>ExchangeProviderSubjectToken</code>. The gateway verifies the SVID's issuer, audience, signature and trust domain, and checks the provider is attached to <b>this</b> sandbox."},
+      {from:"gw",to:"kc",label:"exchange user token, aud=sandbox ID",title:"Gateway exchanges the user token",note:"RFC 8693 with <code>subject_token=user_oidc_token</code>, <code>audience</code> = the supervisor's SPIFFE ID, and <code>client_assertion</code> = the <b>gateway's</b> JWT-SVID (<code>jwt-spiffe</code>)."},
+      {from:"kc",to:"gw",label:"intermediate (sub=user, aud=sandbox)",title:"Intermediate token",note:"Bound to this sandbox by its audience. Useless to anybody else."},
+      {from:"gw",to:"sv",label:"intermediate token",title:"Back to the supervisor",note:"Still outside the agent's reach."},
+      {from:"sv",to:"kc",label:"exchange again, own SVID, aud=mcp-gateway",title:"Supervisor exchanges",note:"<code>subject_token</code> = the intermediate token, <code>client_assertion</code> = the <b>supervisor's</b> JWT-SVID, final <code>audience</code> from the profile."},
+      {from:"kc",to:"sv",label:"final: sub=user, azp=sandbox SPIFFE ID",title:"Final token",note:"Names who (the user) and which software (the sandbox) in one signed token. That's Robert's target shape, done natively."},
+      {from:"sv",to:"mcp",label:"tools/call + Authorization: Bearer",title:"Injected at egress",note:"Authorino validates the realm token, checks <code>tool:X</code> in the roles, and can check <code>azp</code> (chapter 6)."}
+    ]
+  },
+  cc:{
+    id:"gcc", label:"OpenShell client credentials sequence",
+    parts:[{id:"ag",label:"Agent",kind:"os"},{id:"sv",label:"Supervisor\n+ egress proxy",kind:"os"},{id:"sp",label:"SPIRE Agent",kind:"spire"},{id:"kc",label:"Keycloak",kind:"kc"},{id:"mcp",label:"MCP Gateway",kind:"gw"}],
+    intro:["client_credentials: the agent as itself","The default grant. Simple, but the token names only the workload, so you lose \"on behalf of which user\"."],
+    outro:"Good for machine-to-machine calls. For our lab it can't answer \"is this agent allowed to act for this operator?\", so token_exchange is the interesting one.",
+    steps:[
+      {from:"ag",to:"sv",label:"POST /mcp (no auth)",title:"Agent sends plain HTTP",note:"Same as before: the proxy matches the endpoint."},
+      {from:"sv",to:"sp",label:"FetchJWTSVID(aud=realm)",title:"Supervisor gets its SVID",note:"The audience comes from <code>jwt_svid_audience</code>, or is derived from the Keycloak token endpoint path."},
+      {from:"sv",to:"kc",label:"client_credentials + client_assertion=SVID",title:"Client authentication",note:"Keycloak's <code>federated-jwt</code> authenticator verifies the SVID against the SPIRE JWKS and maps <code>sub</code> to a client."},
+      {from:"kc",to:"sv",label:"access token (azp = SPIFFE client)",title:"Workload-only token",note:"No user in it at all."},
+      {from:"sv",to:"mcp",label:"tools/call + Bearer",title:"Injected at egress",note:"The gateway can authorize the workload, not a person."}
+    ]
+  }
+};
+function showGrant(k){ $("#g-tx").setAttribute("aria-pressed", k==="tx"); $("#g-cc").setAttribute("aria-pressed", k==="cc"); stepper($("#grant"), GRANTS[k]); }
+$("#g-tx").onclick = () => showGrant("tx"); $("#g-cc").onclick = () => showGrant("cc"); showGrant("tx");
+
+/* ---- YAML tabs ---- */
+const Y = {
+  "ZTWIM": `apiVersion: operator.openshift.io/v1alpha1
+kind: ZeroTrustWorkloadIdentityManager
+metadata:
+  name: cluster
+spec:
+  trustDomain: "apps.cluster.example.com"   # immutable
+  clusterName: "production-cluster"
+  bundleConfigMap: "spire-bundle"`,
+  "SpireServer": `apiVersion: operator.openshift.io/v1alpha1
+kind: SpireServer
+metadata:
+  name: cluster
+spec:
+  jwtIssuer: "https://oidc-discovery.apps.cluster.example.com"
+  caValidity: "24h"
+  defaultX509Validity: "1h"
+  defaultJWTValidity: "5m"
+  jwtKeyType: "rsa-2048"
+  persistence: { size: "5Gi", accessMode: "ReadWriteOnce" }
+  datastore:
+    databaseType: "sqlite3"
+    connectionString: "/run/spire/data/datastore.sqlite3"`,
+  "SpireAgent": `apiVersion: operator.openshift.io/v1alpha1
+kind: SpireAgent
+metadata:
+  name: cluster
+spec:
+  socketPath: "/run/spire/agent-sockets"
+  nodeAttestor:
+    k8sPSATEnabled: "true"
+  workloadAttestors:
+    k8sEnabled: "true"
+    workloadAttestorsVerification:
+      type: "auto"`,
+  "CSI + OIDC": `apiVersion: operator.openshift.io/v1alpha1
+kind: SpiffeCSIDriver
+metadata:
+  name: cluster
+spec:
+  agentSocketPath: "/run/spire/agent-sockets"   # = SpireAgent.socketPath
+  pluginName: "csi.spiffe.io"
+---
+apiVersion: operator.openshift.io/v1alpha1
+kind: SpireOIDCDiscoveryProvider
+metadata:
+  name: cluster
+spec:
+  csiDriverName: "csi.spiffe.io"
+  jwtIssuer: "https://oidc-discovery.apps.cluster.example.com"  # = SpireServer.jwtIssuer
+  managedRoute: "true"`,
+  "ClusterSPIFFEID": `apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: hermes-agent
+spec:
+  spiffeIDTemplate: "spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
+  podSelector:
+    matchLabels: { app: hermes-plain }
+  namespaceSelector:
+    matchExpressions:
+      - { key: kubernetes.io/metadata.name, operator: In, values: [user1-hermes] }`,
+  "Pod": `spec:
+  serviceAccountName: hermes-agent
+  containers:
+  - name: broker
+    env:
+    - name: SPIFFE_ENDPOINT_SOCKET
+      value: unix:///run/spire/sockets/spire-agent.sock
+    volumeMounts:
+    - { name: spiffe-workload-api, mountPath: /run/spire/sockets, readOnly: true }
+  volumes:
+  - name: spiffe-workload-api
+    csi: { driver: csi.spiffe.io, readOnly: true }
+
+# then:  spire-agent api fetch jwt -socketPath /run/spire/sockets/spire-agent.sock -audience <aud>`
+};
+const tabs = $("#ytabs");
+Object.keys(Y).forEach((k, i) => {
+  const b = document.createElement("button"); b.textContent = k; b.setAttribute("role","tab");
+  b.onclick = () => { tabs.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed","false")); b.setAttribute("aria-pressed","true"); $("#ycode").textContent = Y[k]; };
+  tabs.append(b); if (i === 0) b.click();
+});
+
+/* ---- JWT card ---- */
+const b64u = o => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const TTL = 300;
+let iat = Math.floor(Date.now()/1000);
+const H = {alg:"RS256", kid:"fKhJk0uTiq1ZkvQd", typ:"JWT"};
+const C = () => ({sub:"spiffe://apps.cluster-xyz.example.com/ns/user1-hermes/sa/hermes-agent", aud:["https://keycloak.example.com/realms/waterplant-user1"], exp:iat+TTL, iat, iss:"https://oidc-discovery.apps.cluster-xyz.example.com"});
+const EX = {
+  alg:["header · SPIRE","Signing algorithm. Comes from <code>SpireServer.jwtKeyType</code>: rsa-2048 gives RS256, ec-p256 gives ES256."],
+  kid:["header · SPIRE","Which SPIRE signing key was used. The verifier looks up this <code>kid</code> in the JWKS served by the OIDC Discovery Provider. Keys rotate, so the JWKS can hold several."],
+  typ:["header","Just says it's a JWT."],
+  sub:["payload · SPIRE (from the matched entry)","<b>Who.</b> The SPIFFE ID, the only identity in the token. The workload cannot choose it: the agent picked it by attesting the pod against <code>ClusterSPIFFEID</code>."],
+  aud:["payload · chosen by the caller","<b>For whom.</b> The workload asks for it in <code>FetchJWTSVID(audience=…)</code>. Verifiers <b>must</b> reject tokens that don't name them, which stops a token minted for Keycloak from being replayed at Vault. Keycloak requires exactly the realm issuer URL."],
+  exp:["payload · SPIRE","Expiry = iat + <code>defaultJWTValidity</code> (5 min in ZTWIM). It's a bearer token, so a short life is the main defence. Watch the bar above."],
+  iat:["payload · SPIRE","Issued-at. Keycloak rejects assertions that are too old."],
+  iss:["payload · SPIRE (optional in the spec)","Set because <code>jwtIssuer</code> is configured, so OIDC verifiers can find <code>/.well-known/openid-configuration</code> → <code>jwks_uri</code>. This is also the field to watch with Keycloak's \"iss must match the IdP\" rule."]
+};
+function renderJWT(){
+  const c = C();
+  $("#enc").innerHTML = `<span class="h">${b64u(H)}</span>.<span class="p">${b64u(c)}</span>.<span class="s">${"Rk9SX0xFQVJOSU5HX09OTFlfbm90X2FfcmVhbF9zaWduYXR1cmVfX19fX19fX19fX19fX18"}</span>`;
+  const host = $("#claims"); host.innerHTML = "";
+  const sec = (t, cls) => { const d = document.createElement("div"); d.className = "sec"; d.style.color = `var(--${cls})`; d.textContent = t; host.append(d); };
+  const row = (k, v) => { const b = document.createElement("button"); b.className = "claim"; b.setAttribute("aria-pressed","false"); b.innerHTML = `<span class="kk">${k}</span><span class="vv">${Array.isArray(v) ? JSON.stringify(v) : v}</span>`; b.onclick = () => pick(k, b); host.append(b); return b; };
+  sec("header","gw"); Object.entries(H).forEach(([k,v]) => row(k,v));
+  sec("payload","spire"); let first; Object.entries(c).forEach(([k,v]) => { const b = row(k,v); if (k==="sub") first = b; });
+  sec("signature","kc"); const s = document.createElement("div"); s.className = "claim"; s.style.cursor = "default"; s.innerHTML = `<span class="kk">sig</span><span class="vv">RS256(header.payload, SPIRE key)</span>`; host.append(s);
+  pick("sub", first);
+}
+function pick(k, b){
+  $("#claims").querySelectorAll(".claim").forEach(x => x.setAttribute && x.setAttribute("aria-pressed","false"));
+  b.setAttribute("aria-pressed","true");
+  const [who, txt] = EX[k];
+  $("#explain").innerHTML = `<div class="who">${who}</div><h3 class="mono" style="margin:0">${k}</h3><p>${txt}</p>`;
+}
+function tick(){
+  const left = Math.max(0, iat + TTL - Math.floor(Date.now()/1000));
+  $("#ttlbar").style.width = (left / TTL * 100) + "%";
+  $("#ttltxt").textContent = left ? `${Math.floor(left/60)}:${String(left%60).padStart(2,"0")}` : "expired";
+  $("#ttlbar").style.background = left ? "var(--spire)" : "var(--bad)";
+}
+$("#renew").onclick = () => { iat = Math.floor(Date.now()/1000); renderJWT(); tick(); };
+renderJWT(); tick(); setInterval(tick, 1000);
+
+/* ---- CEL truth table ---- */
+let tok = "op", role = "y";
+function cel(){
+  const ex = tok === "ex", has = role === "y";
+  $("#tk-op").setAttribute("aria-pressed", !ex); $("#tk-ex").setAttribute("aria-pressed", ex);
+  $("#rl-y").setAttribute("aria-pressed", has); $("#rl-n").setAttribute("aria-pressed", !has);
+  const t = ex ? {iss:"…/realms/waterplant-user1", sub:"operator", azp:"hermes-agent", aud:["mcp-gateway"], resource_access:{"user1-hermes/control-mcp":{roles: has ? ["tool:stop_pump","…"] : ["tool:get_pump_status"]}}, jti:"7c1e…"}
+               : {iss:"…/realms/waterplant-user1", azp:"mcp-gateway", resource_access:{"user1-hermes/control-mcp":{roles: has ? ["tool:stop_pump","…"] : ["tool:get_pump_status"]}}, jti:"7c1e…"};
+  $("#tokview").textContent = JSON.stringify(t, null, 2);
+  const p1 = has, p2 = ex;
+  $("#cel").innerHTML = `<div><span class="${p1?"y":"n"}">${p1?"✓":"✗"}</span><span>('tool:' + toolname) in resource_access[server].roles</span></div><div><span class="${p2?"y":"n"}">${p2?"✓":"✗"}</span><span>has(auth.identity.azp) &amp;&amp; auth.identity.azp == 'hermes-agent'</span></div>`;
+  const ok = p1 && p2, v = $("#verdict");
+  v.textContent = ok ? "200 allow" : "403"; v.className = "verdict " + (ok ? "allow" : "deny");
+  $("#vwhy").textContent = ok ? "Both facts hold: the operator has the role, and the token was issued to the agent."
+    : (!p1 && p2) ? "The agent identity alone grants nothing. It only qualifies how the operator's permissions may be used."
+    : (p1 && !p2) ? "Today's token has no agent in it. Once the rule is enforced a raw operator token stops working, which is why enforcement sits behind a per-tenant flag."
+    : "Both checks fail.";
+}
+$("#tk-op").onclick = () => { tok="op"; cel(); }; $("#tk-ex").onclick = () => { tok="ex"; cel(); };
+$("#rl-y").onclick = () => { role="y"; cel(); }; $("#rl-n").onclick = () => { role="n"; cel(); };
+cel();
+
+/* ---- rail highlight ---- */
+const links = [...document.querySelectorAll("#toc a")];
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) links.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id)); }), {rootMargin:"-40% 0px -55% 0px"});
+document.querySelectorAll("main section").forEach(s => io.observe(s));
+})();
+</script>
+</body>
+</html>

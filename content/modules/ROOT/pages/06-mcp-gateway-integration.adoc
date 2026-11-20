@@ -1,0 +1,124 @@
+= MCP Gateway (Kuadrant / Authorino) and SPIFFE
+:navtitle: 6. MCP Gateway
+
+[NOTE]
+====
+Sources: workshop repo `automation/gitops/tenant-policy/templates/mcp-gateway-policy.yaml` (main, pulled 2026-11-20), link:{repo-url}/blob/main/sources/robert-design-note/design-note.md[sources/robert-design-note/design-note.md^] (Fig. 4, 5), `05-spiffe-and-ztwim.md` (fallbacks), link:{repo-url}/blob/main/sources/posta-mcp-oauth-spiffe.md[sources/posta-mcp-oauth-spiffe.md^], link:{repo-url}/blob/main/sources/kuadrant-otel.md[sources/kuadrant-otel.md^].
+
+link:{attachmentsdir}/spiffe-spire-explained.html[Interactive version of this chapter^]
+====
+
+.Our lab today vs target
+image::g-our-lab-today-vs-target.svg[Our lab today vs target,link=self]
+
+== Short answer: does the MCP Gateway "integrate with SPIFFE"?
+
+*Not directly, and it doesn't need to.* The MCP Gateway is an Envoy Gateway with Kuadrant `AuthPolicy` (Authorino). Authorino validates *JWTs from an OIDC issuer*. So there are two ways in:
+
+[arabic]
+. *Indirect (recommended):* SPIFFE authenticates the agent *to Keycloak*. Keycloak issues a token that names user {plus} agent. Authorino keeps trusting only Keycloak and adds one check on `azp`.
+. *Direct (fallback):* Authorino treats the *SPIRE OIDC Discovery Provider as just another issuer* and validates a JWT-SVID itself, read from a custom header.
+
+== How it works today (two listeners, two hops)
+
+From `mcp-gateway-policy.yaml`:
+
+....
+Agent ──Bearer──▶ [listener mcp]  ──broker──▶ [listener mcps] ──▶ MCP server
+                  mcp-auth-policy              mcp-authz-policy
+                  authN: jwt issuerUrl=realm   authN: anonymous if no x-mcp-toolname
+                                                      jwt realm if x-mcp-toolname
+                                               authZ: 'tool:'+toolname in
+                                                      resource_access[servername].roles
+....
+
+* `mcp` (line 55): public listener. Only "is this a valid token from my realm?".
+* `mcps` (line 83): internal listener. The broker sets `x-mcp-servername` / `x-mcp-toolname`. CEL at line 104 checks the tool role.
+* Today the question is *"does the operator hold `tool:X`?"*. There's no agent in the question, because the token has no agent (`azp=mcp-gateway`, no `sub`).
+
+== Option 1 (indirect): add the agent to the question
+
+After the exchange (note 05) the token has `sub=operator` and `azp=++<++agent++>++`. Add *one predicate* in the existing `patternMatching` block. Patterns in one block are AND-ed:
+
+[source,yaml]
+----
+authorization:
+  tool-access-check:
+    patternMatching:
+      patterns:
+        - predicate: |
+            ('tool:' + request.headers['x-mcp-toolname']) in (...existing...)
+        # NEW: the token must have been issued to the agent
+        - predicate: has(auth.identity.azp) && auth.identity.azp == 'hermes-agent'
+        # or, with OpenShell token_exchange where azp is the sandbox SPIFFE ID:
+        # - predicate: auth.identity.azp.startsWith('spiffe://apps.cluster-xyz.example.com/openshell/sandbox/')
+----
+
+[cols=",,",options="header",]
+|===
+| |operator-only token |exchanged token
+|*holds `tool:X`* |403, no agent |*allow*
+|*lacks `tool:X`* |403 |403. _The agent alone grants nothing_
+|===
+
+The agent identity doesn't add permissions. It only qualifies _how_ the user's permissions can be used.
+
+=== Why one token, not two
+
+The tempting design is "require the Keycloak token AND a JWT-SVID". *Authorino's `authentication` rules are OR* (any one succeeds). It can't express "both must pass" inside one policy. That's the load-bearing reason to bind both facts into a single token via the exchange.
+
+== Option 2 (direct): Authorino validates the JWT-SVID itself
+
+Robert's fallback ++#++1, the "two-listener cryptographic AND". Use the two hops that already exist:
+
+[source,yaml]
+----
+# mcp listener: validate the JWT-SVID from a custom header
+rules:
+  authentication:
+    spire-svid:
+      jwt:
+        issuerUrl: https://oidc-discovery.apps.cluster-xyz.example.com   # SpireOIDCDiscoveryProvider
+      credentials:
+        customHeader:
+          name: x-agent-svid
+  authorization:
+    agent-is-hermes:
+      patternMatching:
+        patterns:
+          - predicate: auth.identity.sub == 'spiffe://apps.cluster-xyz.example.com/ns/user1-hermes/sa/hermes-agent'
+          - predicate: "'mcp-gateway' in auth.identity.aud"
+# mcps listener: unchanged, validates the operator's Keycloak token
+----
+
+* Both hops must pass, so both identities must be valid, from two independent roots. *No Keycloak change at all.* Works with RHBK 26.4 as-is.
+* Cost: the two facts are never bound in one artifact (a stolen operator token {plus} any valid SVID would pass).
+* Unknown: does the MCP broker forward `x-agent-svid` from hop 1 to hop 2? (It doesn't need to for this layout, since hop 1 checks the SVID and hop 2 the bearer.)
+* Who sets the header? With OpenShell, a `token++_++grant` with `auth++_++style: header` {plus} `header++_++name: x-agent-svid` can inject a token at egress. But a token grant injects a _Keycloak-issued_ token, not the raw SVID. For a raw SVID you'd need the Path A broker sidecar.
+
+[[postas-take-mcp-oauth--spiffe]]
+== Posta's take (MCP OAuth {plus} SPIFFE)
+
+Christian Posta's post covers the *MCP authorization spec* angle. MCP clients are OAuth clients, and dynamic client registration with secrets is awkward for agents. His answer: the MCP client authenticates to Keycloak with its *JWT-SVID* (custom `client-spiffe-jwt` SPI, now native `federated-jwt`), and the resulting token has `azp` / `client++_++id` = the SPIFFE ID. The MCP server or gateway then authorizes on that. Same as Option 1, without per-agent secrets or DCR.
+
+[[provenance-one-jti-to-join-everything-robert-fig-5]]
+== Provenance: one `jti` to join everything (Robert Fig. 5)
+
+Authorization at the gateway doesn't give you *attribution*. Plan:
+
+* Authorino success response injects identity headers (subject, agent chain, `jti`) towards the MCP servers → `plant-api` audit row, `raised++_++by++_++verified` on work orders (kept _beside_ the model-filled `raised++_++by`, on purpose, as the teaching artifact).
+* The same `jti` goes in the Authorino decision log and MLflow trace tags (`waterplant.actor / source / jti`).
+* Model the actor as an *ordered list* from day one, so moving to RFC 8693 `act` claims later (Keycloak 26.8{plus} delegation, preview) is cheap.
+* Kuadrant can export its own telemetry over OTLP (`OTEL++_++EXPORTER++_++OTLP++_++ENDPOINT`, see `sources/kuadrant-otel.md`). That covers operator logs/metrics, not request traces with identity. The `jti` correlation still has to be added in the policy/headers.
+
+[[today-in-our-repo--with-spiffe]]
+== Today in our repo → with SPIFFE
+
+[cols=",,",options="header",]
+|===
+| |Today |With SPIFFE
+|`mcp-auth-policy` (line 55) |jwt from realm |same (Option 1), or {plus} SPIRE issuer via `customHeader` (Option 2)
+|`mcp-authz-policy` CEL (line 104) |tool role only |tool role *AND* `azp` is the agent
+|Rollout |`mcp-gateway-rollout` PostSync Job restarts gateway {plus} agent |same, plus a per-tenant flag (`mcpGateway.enforced` pattern) to keep enforcement shadowed until the broker is proven
+|Failure mode |Hermes reports a 403 as "network issue or service outage" |same risk, bigger: any broker/Keycloak hiccup means "agent has no tools". Fail closed, keep the flag
+|===

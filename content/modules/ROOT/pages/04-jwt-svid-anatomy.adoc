@@ -1,0 +1,106 @@
+= What's a JWT-SVID and what's inside
+:navtitle: 4. JWT-SVID anatomy
+
+[NOTE]
+====
+Sources: SPIFFE JWT-SVID spec, link:{repo-url}/blob/main/sources/ocp419-ztwim-chapter10.md[sources/ocp419-ztwim-chapter10.md^] (10.1.1, 10.5.2, 10.7.2), link:{repo-url}/blob/main/sources/skycloak-jwt-svid-keycloak.md[sources/skycloak-jwt-svid-keycloak.md^], link:{repo-url}/blob/main/sources/robert-design-note/design-note.md[sources/robert-design-note/design-note.md^].
+
+link:{attachmentsdir}/spiffe-spire-explained.html[Interactive version of this chapter^]
+====
+
+.Anatomy of a JWT-SVID
+image::d-jwt-svid-card.svg[Anatomy of a JWT-SVID,link=self]
+
+== One-liner
+
+A *JWT-SVID* is a normal JWT (header.payload.signature), signed by the SPIRE Server, where *`sub` is the SPIFFE ID* of the workload. It's short-lived and only valid for the audience it was requested for.
+
+== Decoded example
+
+[source,jsonc]
+----
+// HEADER
+{
+  "alg": "RS256",            // from SpireServer.jwtKeyType (rsa-2048 → RS256, ec-p256 → ES256)
+  "kid": "fKhJk0uTiq1...",   // which SPIRE signing key. Verifier looks it up in the JWKS
+  "typ": "JWT"
+}
+// PAYLOAD
+{
+  "sub": "spiffe://apps.cluster-xyz.example.com/ns/user1-hermes/sa/hermes-agent",  // WHO (the SPIFFE ID)
+  "aud": ["https://keycloak.example.com/realms/waterplant-user1"],                 // FOR WHOM (set by the caller)
+  "exp": 1795600300,         // iat + defaultJWTValidity (5m in ZTWIM)
+  "iat": 1795600000,
+  "iss": "https://oidc-discovery.apps.cluster-xyz.example.com"  // = SpireServer.jwtIssuer (if set)
+}
+// SIGNATURE  — signed with the SPIRE Server's JWT key; public half in the JWKS
+----
+
+== Claim by claim
+
+[cols=",,,",options="header",]
+|===
+|Claim |Required by SPIFFE spec |Meaning |Who sets it
+|`sub` |*yes* |The SPIFFE ID. The _only_ identity in the token |SPIRE, from the matched registration entry. The workload can't choose it
+|`aud` |*yes* |Who may accept this token. Verifiers *must* reject tokens without their own audience |The workload, when calling `FetchJWTSVID(audience=...)`
+|`exp` |*yes* |Expiry. Short by design (5m default here) |SPIRE
+|`iat` |optional |Issued-at |SPIRE
+|`iss` |optional in spec |The issuer URL. ZTWIM sets it when `jwtIssuer` is configured, so OIDC verifiers can find `/.well-known/openid-configuration` |SPIRE
+|`kid` (header) |*yes* |Key ID to pick the right public key |SPIRE
+|extra claims |no |SPIRE can add custom claims via a CredentialComposer plugin (docs 10.2.2 mention it) |SPIRE config
+|===
+
+*What's NOT there:* no roles, no scopes, no username, no `azp`, no `jti` by default. A JWT-SVID says _which workload_ this is, nothing about _what it may do_ or _on behalf of whom_. Permissions come from the relying party (Keycloak roles, Vault policies, Authorino rules).
+
+== How a verifier checks it
+
+[arabic]
+. Read `kid` from the header.
+. Fetch the JWKS from the trust bundle, or via OIDC: `iss` {plus} `/.well-known/openid-configuration` → `jwks++_++uri` (served by `spire-spiffe-oidc-discovery-provider`).
+. Verify the signature with the key whose `kid` matches.
+. `exp` in the future (small clock skew).
+. `aud` contains *my* identifier. This is the critical one: it stops a token minted for service A from being replayed against B.
+. `sub` is a SPIFFE ID I trust (exact match or a prefix like `spiffe://++<++td++>++/ns/user1-hermes/++*++`).
+
+== JWT-SVID vs the token Hermie uses today
+
+From Robert's design note, decoded live from `/app/.hermes/mcp-tokens/gateway.json`:
+
+[cols=",,",options="header",]
+|===
+| |Today's Keycloak token |A JWT-SVID
+|Issuer |Keycloak realm `waterplant-++<++user++>++` |SPIRE (`oidc-discovery.++<++apps++>++`)
+|`sub` |*absent* |SPIFFE ID of the pod
+|`aud` |*absent* |requested audience
+|`azp` |`mcp-gateway` (shared public client) |not present
+|Roles |`resource++_++access`: 3 clients, 18 `tool:++*++` roles |none
+|How obtained |password grant as `operator` with a password in env vars |attested by the SPIRE Agent, no secret
+|Lifetime |realm `accessTokenLifespan` (1800s default) |5 min
+|===
+
+They answer *different questions*:
+
+* JWT-SVID → _which software is this?_ (workload identity)
+* Keycloak token → _what is it allowed to do and for whom?_ (authorization, user identity)
+
+That's why you don't send the JWT-SVID to the MCP Gateway directly. You use it to *authenticate the agent to Keycloak* (instead of a client secret) and get back a Keycloak token that carries both the user (`sub`) and the agent (`azp`). That's note 05.
+
+[[x509-svid-for-contrast]]
+== X.509-SVID for contrast
+
+Same SPIFFE ID, but in the URI SAN of a certificate:
+
+....
+Subject: O=SPIRE, C=US
+X509v3 Subject Alternative Name: URI:spiffe://apps.cluster-xyz.example.com/ns/user1-hermes/sa/hermes-agent
+Validity: 1h (defaultX509Validity)
+....
+
+Better than JWT for proof-of-possession (it's mTLS, so a stolen cert without the key is useless). But it needs end-to-end TLS to the verifier, which is hard through OpenShift routes and the shared RHDP Keycloak ingress (Robert's option 1 risk).
+
+== The gotcha with Keycloak `private++_++key++_++jwt`
+
+RFC 7523 / OIDC client assertions want `iss == sub == client++_++id`. A JWT-SVID has `sub = spiffe://...` and `iss = https://oidc-discovery...`. They don't match. Two ways out:
+
+* Name the Keycloak client with the SPIFFE ID string and hope Keycloak tolerates `iss` (Robert's trick, unverified).
+* Use Keycloak's newer *federated client authentication / SPIFFE* support (issue 41907), which knows how to validate a JWT-SVID against a SPIFFE bundle. Details in note 05.

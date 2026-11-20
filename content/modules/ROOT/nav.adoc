@@ -1,0 +1,14 @@
+* xref:index.adoc[Overview]
+
+.Foundations
+* xref:01-spiffe-spire-for-dummies.adoc[]
+* xref:02-ztwim-on-openshift.adoc[]
+
+.Agents and tokens
+* xref:03-sandbox-openshell-gateway-keycloak-flow.adoc[]
+* xref:04-jwt-svid-anatomy.adoc[]
+* xref:05-keycloak-openshell-spire-interactions.adoc[]
+* xref:06-mcp-gateway-integration.adoc[]
+
+.Reference
+* xref:sources.adoc[Sources]
