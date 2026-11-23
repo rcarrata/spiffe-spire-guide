@@ -3,7 +3,7 @@
 
 [NOTE]
 ====
-Sources: link:{repo-url}/blob/main/sources/keycloak-issue-41907.md[sources/keycloak-issue-41907.md^] ({plus} epic ++#++42634, ++#++46977), link:{repo-url}/blob/main/sources/skycloak-jwt-svid-keycloak.md[sources/skycloak-jwt-svid-keycloak.md^], link:{repo-url}/blob/main/sources/posta-mcp-oauth-spiffe.md[sources/posta-mcp-oauth-spiffe.md^], link:{repo-url}/blob/main/sources/openshell-pr-1970.md[sources/openshell-pr-1970.md^], link:{repo-url}/blob/main/sources/robert-design-note/04-keycloak-upgrade-path.md[sources/robert-design-note/04-keycloak-upgrade-path.md^], `05-spiffe-and-ztwim.md`.
+Sources: link:{repo-url}/blob/main/sources/keycloak-issue-41907.md[sources/keycloak-issue-41907.md^] ({plus} epic ++#++42634, ++#++46977), link:{repo-url}/blob/main/sources/skycloak-jwt-svid-keycloak.md[sources/skycloak-jwt-svid-keycloak.md^], link:{repo-url}/blob/main/sources/posta-mcp-oauth-spiffe.md[sources/posta-mcp-oauth-spiffe.md^], link:{repo-url}/blob/main/sources/openshell-pr-1970.md[sources/openshell-pr-1970.md^], link:{repo-url}/blob/main/sources/robert-design-note/04-keycloak-upgrade-path.md[sources/robert-design-note/04-keycloak-upgrade-path.md^], link:{repo-url}/blob/main/sources/rhbk-264-266-spiffe.md[sources/rhbk-264-266-spiffe.md^], `05-spiffe-and-ztwim.md`.
 
 link:{attachmentsdir}/spiffe-spire-explained.html[Interactive version of this chapter^]
 ====
@@ -41,6 +41,8 @@ Issue *++#++41907* ("Support authenticating clients with SPIFFE/SPIRE", by stian
 |26.5 |single-feature flag `--feature-spiffe=enabled`. IdP key `issuer` renamed to `trustDomain`. Client id *no longer has to equal* the SVID `sub` ("Federated subject" field instead)
 |26.6.0 |federated client auth (OIDC IdPs, *Kubernetes service accounts*) → *supported*. *SPIFFE stays preview* (IETF draft not final)
 |26.8.2 (latest) |SPIFFE still preview. ++#++46977 "Supported SPIFFE client authentication" open for 27.0. X509-SVID client auth (++#++49833) open
+|*RHBK 26.4* |Red Hat build of Keycloak 26.4 documents it: "Federated client authentication and SPIFFE trust relationship provider", clients "authenticate with SPIFFE JWT SVIDs" - *Technology Preview* (release notes Ch. 19)
+|*RHBK 26.6* |federated client auth (OIDC IdPs, Kubernetes service accounts) → *supported*. SPIFFE *not named as supported* - stays preview, same as upstream. Single flag `--feature-spiffe=enabled` arrives
 |===
 
 [[how-you-configure-it-265-shape]]
@@ -79,6 +81,7 @@ ____
 
 [[what-this-means-for-our-keycloak-rhbk-26418]]
 == What this means for _our_ Keycloak (RHBK 26.4.18)
+* *Confirmed in the Red Hat build:* RHBK 26.4 release notes list "Federated client authentication and SPIFFE trust relationship provider" as a *Technology Preview* feature - clients "authenticate with SPIFFE JWT SVIDs". So 26.4.18 has the code, verified by Red Hat's own docs, not just by upstream mapping. In the RHBK 26.6 stream federated client auth is supported for OIDC IdPs and Kubernetes service accounts, but SPIFFE is not named as supported there either.
 
 * 26.4 *has* the preview code. But it needs the `spiffe` *and* `client-auth-federated` preview features enabled at server start (single-feature flag only from 26.5).
 * Since 26.4 is before 26.5, the client id likely *must equal* the SPIFFE ID. That's exactly Robert's "set `clientId` to the SPIFFE ID string" trick, and now we know why it's needed.
